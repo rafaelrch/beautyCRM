@@ -1,0 +1,284 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Header } from "@/components/layout/Header";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Edit, Trash2 } from "lucide-react";
+import { formatCurrency, formatDuration } from "@/lib/formatters";
+import { storage, initializeStorage } from "@/lib/storage";
+import { mockClients, mockServices, mockTransactions, mockAppointments, mockProducts, mockMovements, mockSalonConfig } from "@/data";
+import type { Service } from "@/types";
+
+const categories = [
+  { value: "all", label: "Todos" },
+  { value: "hair", label: "Cabelo" },
+  { value: "nails", label: "Unhas" },
+  { value: "aesthetics", label: "Estética" },
+  { value: "makeup", label: "Maquiagem" },
+  { value: "massage", label: "Massagem" },
+];
+
+const categoryLabels: Record<string, string> = {
+  hair: "Cabelo",
+  nails: "Unhas",
+  aesthetics: "Estética",
+  makeup: "Maquiagem",
+  massage: "Massagem",
+};
+
+export default function ServicesPage() {
+  const [services, setServices] = useState<Service[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingService, setEditingService] = useState<Service | null>(null);
+
+  useEffect(() => {
+    initializeStorage({
+      clients: mockClients,
+      services: mockServices,
+      transactions: mockTransactions,
+      products: mockProducts,
+      appointments: mockAppointments,
+      movements: mockMovements,
+      salonConfig: mockSalonConfig,
+    });
+    setServices(storage.get<Service>("services"));
+  }, []);
+
+  const filteredServices = services.filter(
+    (service) => activeCategory === "all" || service.category === activeCategory
+  );
+
+  const handleAddService = () => {
+    setEditingService(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleEditService = (service: Service) => {
+    setEditingService(service);
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteService = (id: string) => {
+    if (confirm("Tem certeza que deseja excluir este serviço?")) {
+      storage.delete<Service>("services", id);
+      setServices(storage.get<Service>("services"));
+    }
+  };
+
+  const handleSaveService = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    const serviceData = {
+      name: formData.get("name") as string,
+      category: formData.get("category") as Service["category"],
+      duration: parseInt(formData.get("duration") as string),
+      price: parseFloat(formData.get("price") as string),
+      description: formData.get("description") as string,
+      professionalIds: [],
+      active: formData.get("active") === "on",
+    };
+
+    if (editingService) {
+      storage.update<Service>("services", editingService.id, {
+        ...serviceData,
+        professionalIds: editingService.professionalIds,
+      });
+    } else {
+      storage.add<Service>("services", {
+        ...serviceData,
+        id: "",
+      });
+    }
+
+    setServices(storage.get<Service>("services"));
+    setIsDialogOpen(false);
+    setEditingService(null);
+  };
+
+  return (
+    <div className="space-y-6">
+      <Header title="Serviços" actionLabel="Adicionar Serviço" onAction={handleAddService} />
+
+      {/* Category Tabs */}
+      <div className="bg-white rounded-xl border border-border p-4">
+        <Tabs value={activeCategory} onValueChange={setActiveCategory}>
+          <TabsList>
+            {categories.map((cat) => (
+              <TabsTrigger key={cat.value} value={cat.value}>
+                {cat.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* Services Table */}
+      <div className="bg-white rounded-xl border border-border p-6">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nome</TableHead>
+              <TableHead>Categoria</TableHead>
+              <TableHead>Duração</TableHead>
+              <TableHead>Preço</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-32">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredServices.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  Nenhum serviço cadastrado.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredServices.map((service) => (
+                <TableRow key={service.id} className="hover:bg-muted/50">
+                  <TableCell className="font-medium">{service.name}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="rounded-full">
+                      {categoryLabels[service.category]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{formatDuration(service.duration)}</TableCell>
+                  <TableCell>{formatCurrency(service.price)}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={
+                        service.active
+                          ? "bg-green-100 text-green-700 border-green-200"
+                          : "bg-gray-100 text-gray-700 border-gray-200"
+                      }
+                    >
+                      {service.active ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleEditService(service)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteService(service.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Service Form Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingService ? "Editar Serviço" : "Adicionar Serviço"}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveService} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <Label htmlFor="name" className="mb-[3px]">Nome *</Label>
+                <Input id="name" name="name" required defaultValue={editingService?.name} />
+              </div>
+              <div>
+                <Label htmlFor="category" className="mb-[3px]">Categoria *</Label>
+                <Select
+                  name="category"
+                  defaultValue={editingService?.category || "hair"}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hair">Cabelo</SelectItem>
+                    <SelectItem value="nails">Unhas</SelectItem>
+                    <SelectItem value="aesthetics">Estética</SelectItem>
+                    <SelectItem value="makeup">Maquiagem</SelectItem>
+                    <SelectItem value="massage">Massagem</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="duration" className="mb-[3px]">Duração (minutos) *</Label>
+                <Input
+                  id="duration"
+                  name="duration"
+                  type="number"
+                  required
+                  defaultValue={editingService?.duration}
+                />
+              </div>
+              <div>
+                <Label htmlFor="price" className="mb-[3px]">Preço (R$) *</Label>
+                <Input
+                  id="price"
+                  name="price"
+                  type="number"
+                  step="0.01"
+                  required
+                  defaultValue={editingService?.price}
+                />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="description" className="mb-[3px]">Descrição</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  rows={3}
+                  defaultValue={editingService?.description}
+                />
+              </div>
+              <div className="col-span-2 flex items-center gap-2">
+                <Switch
+                  id="active"
+                  name="active"
+                  defaultChecked={editingService?.active ?? true}
+                />
+                <Label htmlFor="active">Serviço ativo</Label>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit">Salvar</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
