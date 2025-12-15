@@ -6,32 +6,128 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Loader2 } from "lucide-react";
 import { formatCurrency, formatDate, formatDateTime, formatPhone, formatCPF } from "@/lib/formatters";
-import { storage } from "@/lib/storage";
-import { mockServices } from "@/data";
+import { getClients, getAppointments, deleteClient, getServices } from "@/lib/supabase-helpers";
+import { useToast } from "@/hooks/use-toast";
 import type { Client, Appointment } from "@/types";
+import type { Database } from "@/types/database";
 import Link from "next/link";
+
+type ClientRow = Database["public"]["Tables"]["clients"]["Row"];
+type AppointmentRow = Database["public"]["Tables"]["appointments"]["Row"];
+type ServiceRow = Database["public"]["Tables"]["services"]["Row"];
 
 export default function ClientDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const [client, setClient] = useState<Client | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [services, setServices] = useState<ServiceRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    const clients = storage.get<Client>("clients");
-    const foundClient = clients.find((c) => c.id === params.id);
-    setClient(foundClient || null);
-
-    if (foundClient) {
-      const allAppointments = storage.get<Appointment>("appointments");
-      const clientAppointments = allAppointments
-        .filter((apt) => apt.clientId === foundClient.id)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      setAppointments(clientAppointments);
-    }
+    loadClientData();
   }, [params.id]);
+
+  const loadClientData = async () => {
+    try {
+      setIsLoading(true);
+      const [clientsData, appointmentsData, servicesData] = await Promise.all([
+        getClients(),
+        getAppointments(),
+        getServices(),
+      ]);
+
+      // Encontrar o cliente
+      const foundClient = clientsData.find((c: ClientRow) => c.id === params.id);
+      if (!foundClient) {
+        setClient(null);
+        setIsLoading(false);
+        return;
+      }
+
+      // Converter cliente do Supabase para o formato esperado
+      const formattedClient: Client = {
+        id: foundClient.id,
+        name: foundClient.name,
+        phone: foundClient.phone || "",
+        email: foundClient.email || "",
+        birthdate: foundClient.birthdate ? new Date(foundClient.birthdate) : new Date(),
+        address: foundClient.address || "",
+        cpf: foundClient.cpf || "",
+        registrationDate: new Date(foundClient.registration_date),
+        lastVisit: foundClient.last_visit ? new Date(foundClient.last_visit) : null,
+        totalSpent: Number(foundClient.total_spent) || 0,
+        totalVisits: Number(foundClient.total_visits) || 0,
+        notes: foundClient.notes || "",
+        status: foundClient.status || "active",
+      };
+      setClient(formattedClient);
+
+      // Salvar serviços para usar na renderização
+      setServices(servicesData);
+
+      // Converter agendamentos do Supabase
+      const clientAppointments: Appointment[] = appointmentsData
+        .filter((apt: AppointmentRow) => apt.client_id === foundClient.id)
+        .map((apt: AppointmentRow) => {
+          // Converter data
+          let appointmentDate: Date;
+          if (apt.date instanceof Date) {
+            appointmentDate = apt.date;
+          } else if (typeof apt.date === 'string') {
+            if (apt.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+              const [year, month, day] = apt.date.split('-').map(Number);
+              appointmentDate = new Date(year, month - 1, day);
+            } else {
+              appointmentDate = new Date(apt.date);
+            }
+          } else {
+            appointmentDate = new Date(apt.date);
+          }
+
+          // Calcular totalAmount dos serviços
+          const appointmentServices = (apt.service_ids || [])
+            .map((id: string) => servicesData.find((s: ServiceRow) => s.id === id))
+            .filter(Boolean) as ServiceRow[];
+          const totalAmount = appointmentServices.reduce((sum: number, s: ServiceRow) => sum + Number(s.price || 0), 0);
+
+          return {
+            id: apt.id,
+            clientId: apt.client_id,
+            serviceIds: apt.service_ids || [],
+            professionalId: apt.professional_id,
+            date: appointmentDate,
+            startTime: apt.start_time,
+            endTime: apt.end_time,
+            status: (apt.status as 'agendado' | 'confirmado' | 'concluido' | 'cancelado' | 'nao_compareceu') || 'agendado',
+            totalAmount: totalAmount,
+            notes: apt.notes || "",
+          } as Appointment;
+        })
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      setAppointments(clientAppointments);
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao carregar dados do cliente",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!client) {
     return (
@@ -42,21 +138,30 @@ export default function ClientDetailsPage() {
   }
 
   const completedAppointments = appointments.filter(
-    (apt) => apt.status === "completed"
-  );
-  const totalSpent = completedAppointments.reduce(
-    (sum, apt) => sum + apt.totalAmount,
-    0
+    (apt) => apt.status === "concluido"
   );
   const averageTicket =
     completedAppointments.length > 0
-      ? totalSpent / completedAppointments.length
+      ? (client?.totalSpent || 0) / completedAppointments.length
       : 0;
 
-  const handleDelete = () => {
-    if (confirm("Tem certeza que deseja excluir este cliente?")) {
-      storage.delete<Client>("clients", client.id);
+  const handleDelete = async () => {
+    if (!client) return;
+    if (!confirm("Tem certeza que deseja excluir este cliente?")) return;
+
+    try {
+      await deleteClient(client.id);
+      toast({
+        title: "Sucesso",
+        description: "Cliente excluído com sucesso!",
+      });
       router.push("/clientes");
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir cliente",
+        variant: "destructive",
+      });
     }
   };
 
@@ -207,9 +312,9 @@ export default function ClientDetailsPage() {
                 </TableRow>
               ) : (
                 appointments.map((appointment) => {
-                  const services = appointment.serviceIds
-                    .map((id) => mockServices.find((s) => s.id === id))
-                    .filter(Boolean);
+                  const appointmentServices = appointment.serviceIds
+                    .map((id) => services.find((s) => s.id === id))
+                    .filter(Boolean) as ServiceRow[];
                   
                   return (
                     <TableRow key={appointment.id}>
@@ -217,28 +322,32 @@ export default function ClientDetailsPage() {
                         {formatDateTime(typeof appointment.date === 'string' ? new Date(appointment.date) : appointment.date)}
                       </TableCell>
                       <TableCell>
-                        {services.map((s) => s?.name).join(", ")}
+                        {appointmentServices.map((s) => s.name).join(", ")}
                       </TableCell>
                       <TableCell>{formatCurrency(appointment.totalAmount)}</TableCell>
                       <TableCell>
                         <Badge
                           variant="outline"
                           className={
-                            appointment.status === "completed"
+                            appointment.status === "concluido"
                               ? "bg-green-100 text-green-700 border-green-200"
-                              : appointment.status === "cancelled"
+                              : appointment.status === "cancelado"
                               ? "bg-red-100 text-red-700 border-red-200"
-                              : appointment.status === "no-show"
+                              : appointment.status === "nao_compareceu"
                               ? "bg-orange-100 text-orange-700 border-orange-200"
-                              : "bg-blue-100 text-blue-700 border-blue-200"
+                              : appointment.status === "confirmado"
+                              ? "bg-blue-100 text-blue-700 border-blue-200"
+                              : "bg-yellow-100 text-yellow-700 border-yellow-200"
                           }
                         >
-                          {appointment.status === "completed"
+                          {appointment.status === "concluido"
                             ? "Concluído"
-                            : appointment.status === "cancelled"
+                            : appointment.status === "cancelado"
                             ? "Cancelado"
-                            : appointment.status === "no-show"
-                            ? "Falta"
+                            : appointment.status === "nao_compareceu"
+                            ? "Não Compareceu"
+                            : appointment.status === "confirmado"
+                            ? "Confirmado"
                             : "Agendado"}
                         </Badge>
                       </TableCell>
