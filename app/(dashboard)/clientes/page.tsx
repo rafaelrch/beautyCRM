@@ -305,9 +305,9 @@ export default function ClientsPage() {
           </SelectContent>
         </Select>
         <div className="flex sm:flex-none justify-end sm:justify-start">
-          <Button variant="outline" size="icon">
-            <Filter className="h-4 w-4" />
-          </Button>
+        <Button variant="outline" size="icon">
+          <Filter className="h-4 w-4" />
+        </Button>
         </div>
       </div>
 
@@ -320,78 +320,78 @@ export default function ClientsPage() {
         ) : (
           <div className="overflow-x-auto">
             <Table className="min-w-[720px]">
-              <TableHeader>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Última Visita</TableHead>
+                <TableHead>Total Gasto</TableHead>
+                <TableHead>Visitas</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-32">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredClients.length === 0 ? (
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Última Visita</TableHead>
-                  <TableHead>Total Gasto</TableHead>
-                  <TableHead>Visitas</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-32">Ações</TableHead>
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    Nenhum cliente encontrado. Adicione o primeiro cliente.
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredClients.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      Nenhum cliente encontrado. Adicione o primeiro cliente.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                filteredClients.map((client) => (
-                  <TableRow key={client.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{client.name}</TableCell>
-                    <TableCell>{formatPhone(client.phone)}</TableCell>
-                    <TableCell>{client.email}</TableCell>
-                    <TableCell>
-                      {client.lastVisit ? formatDate(client.lastVisit) : "Nunca"}
-                    </TableCell>
-                    <TableCell>{formatCurrency(client.totalSpent)}</TableCell>
-                    <TableCell>{client.totalVisits}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={
-                          client.status === "active"
-                            ? "bg-green-100 text-green-700 border-green-200"
-                            : "bg-gray-100 text-gray-700 border-gray-200"
-                        }
+              ) : (
+              filteredClients.map((client) => (
+                <TableRow key={client.id} className="hover:bg-muted/50">
+                  <TableCell className="font-medium">{client.name}</TableCell>
+                  <TableCell>{formatPhone(client.phone)}</TableCell>
+                  <TableCell>{client.email}</TableCell>
+                  <TableCell>
+                    {client.lastVisit ? formatDate(client.lastVisit) : "Nunca"}
+                  </TableCell>
+                  <TableCell>{formatCurrency(client.totalSpent)}</TableCell>
+                  <TableCell>{client.totalVisits}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={
+                        client.status === "active"
+                          ? "bg-green-100 text-green-700 border-green-200"
+                          : "bg-gray-100 text-gray-700 border-gray-200"
+                      }
+                    >
+                      {client.status === "active" ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/clientes/${client.id}`}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleEditClient(client)}
                       >
-                        {client.status === "active" ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Link href={`/clientes/${client.id}`}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleEditClient(client)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteClient(client.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-              </TableBody>
-            </Table>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteClient(client.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+            </TableBody>
+          </Table>
           </div>
         )}
       </div>

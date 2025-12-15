@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,35 +77,35 @@ export default function SettingsPage() {
         <p className="text-muted-foreground mt-1">Gerencie as configurações do seu salão</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Informações do Salão</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Informações do Salão</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
               <Label htmlFor="salon_name">Nome do Salão</Label>
               <Input id="salon_name" value={profile.salon_name || ""} readOnly />
-            </div>
-            <div>
+                  </div>
+                  <div>
               <Label htmlFor="phone">Telefone</Label>
               <Input id="phone" value={profile.phone || ""} readOnly />
-            </div>
-            <div>
+                  </div>
+                  <div>
               <Label htmlFor="email">Email</Label>
               <Input id="email" value={profile.email || ""} readOnly />
-            </div>
-            <div>
+                  </div>
+                  <div>
               <Label htmlFor="cnpj">CNPJ</Label>
               <Input id="cnpj" value={profile.cnpj || ""} readOnly />
-            </div>
-            <div className="col-span-2">
+                  </div>
+                  <div className="col-span-2">
               <Label htmlFor="address">Endereço</Label>
               <Input id="address" value={profile.address || ""} readOnly />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+                  </div>
+              </div>
+            </CardContent>
+          </Card>
     </div>
   );
 }

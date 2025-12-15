@@ -645,6 +645,28 @@ export default function AgendamentosPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!agendamentoSelecionado) return;
+    try {
+      await deleteAppointment(agendamentoSelecionado.id);
+
+      toast({
+        title: "Sucesso",
+        description: "Agendamento excluído com sucesso!",
+      });
+
+      await loadData();
+      setIsDrawerOpen(false);
+      setAgendamentoSelecionado(null);
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir agendamento",
+        variant: "destructive",
+      });
+    }
+  };
+
   const agendamentosExistentes = agendamentosFormatados.map((apt) => ({
     profissionalId: apt.profissionalId,
     data: format(apt.data, "yyyy-MM-dd"),
@@ -1073,8 +1095,8 @@ export default function AgendamentosPage() {
           servicos={servicosFormatados}
           profissionais={profissionaisFormatados}
           onSave={handleSaveDrawer}
-          onCancel={handleCancelar}
           onComplete={handleConcluir}
+          onDelete={handleDelete}
         />
       )}
 

@@ -195,72 +195,72 @@ export default function ProfissionaisPage() {
         ) : (
           <div className="overflow-x-auto">
             <Table className="min-w-[640px]">
-              <TableHeader>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Cor</TableHead>
+                <TableHead>Especialidade</TableHead>
+                <TableHead className="w-32">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProfissionais.length === 0 ? (
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Cor</TableHead>
-                  <TableHead>Especialidade</TableHead>
-                  <TableHead className="w-32">Ações</TableHead>
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    Nenhum profissional encontrado. Adicione o primeiro profissional.
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProfissionais.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                      Nenhum profissional encontrado. Adicione o primeiro profissional.
+              ) : (
+                filteredProfissionais.map((profissional) => (
+                  <TableRow key={profissional.id} className="hover:bg-muted/50">
+                    <TableCell className="font-medium">{profissional.name}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-6 h-6 rounded-full border border-border"
+                          style={{ backgroundColor: profissional.color || "#FF6B6B" }}
+                        />
+                        <span className="text-sm text-muted-foreground">{profissional.color || "#FF6B6B"}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {profissional.specialties && profissional.specialties.length > 0 ? (
+                        <div className="flex gap-1 flex-wrap">
+                          {profissional.specialties.map((esp, idx) => (
+                            <Badge key={idx} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              {esp}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">Sem especialidade</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleEditProfissional(profissional)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteProfissional(profissional.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  filteredProfissionais.map((profissional) => (
-                    <TableRow key={profissional.id} className="hover:bg-muted/50">
-                      <TableCell className="font-medium">{profissional.name}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-6 h-6 rounded-full border border-border"
-                            style={{ backgroundColor: profissional.color || "#FF6B6B" }}
-                          />
-                          <span className="text-sm text-muted-foreground">{profissional.color || "#FF6B6B"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {profissional.specialties && profissional.specialties.length > 0 ? (
-                          <div className="flex gap-1 flex-wrap">
-                            {profissional.specialties.map((esp, idx) => (
-                              <Badge key={idx} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                {esp}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">Sem especialidade</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleEditProfissional(profissional)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => handleDeleteProfissional(profissional.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                ))
+              )}
+            </TableBody>
+          </Table>
           </div>
         )}
       </div>

@@ -405,7 +405,7 @@ export default function FinancialPage() {
       }
 
       const descriptionValue = (formData.get("description") as string) || "";
-      
+
       const transaction = await createTransaction({
         date: dateValue,
         type: type,
@@ -1602,7 +1602,7 @@ export default function FinancialPage() {
                     }
 
                     const descriptionValueUpdate = (formData.get("description") as string) || "";
-                    
+
                     const updatedTransaction = await updateTransaction(editingTransaction.id, {
                       date: dateValue,
                       type: type,

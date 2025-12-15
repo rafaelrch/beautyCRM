@@ -1,10 +1,7 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Plus, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,7 +40,6 @@ export function KanbanColumn({
 
   const cardIds = cards.map((card) => card.id);
 
-  // Função para obter cor do indicador de status
   const getStatusIndicatorColor = (status: string): string => {
     const colors: Record<string, string> = {
       agendado: "bg-yellow-500",
@@ -56,27 +52,23 @@ export function KanbanColumn({
   };
 
   return (
-    <div className="flex-1 min-w-0 flex-shrink-0">
-      <div
-        className={`h-full flex flex-col bg-gray-50 rounded-lg p-3 min-h-[200px] ${
-          isOver ? "ring-2 ring-primary ring-offset-2 bg-blue-50" : ""
-        }`}
-      >
+    <div className="flex-1 min-w-[320px] max-w-[380px] h-full">
+      <div className="h-full flex flex-col bg-gray-50 rounded-lg">
         {/* Header da Coluna */}
-        <div className="flex items-center justify-between mb-4 pb-3 bg-white rounded-lg px-3 py-2 border-b border-gray-100">
+        <div className="flex items-center justify-between p-4 bg-white rounded-t-lg border-b border-gray-200">
           <div className="flex items-center gap-2.5">
-            {/* Ícone circular com indicador de status */}
             <div className="relative">
               <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
                 <div className={`w-2.5 h-2.5 rounded-full ${getStatusIndicatorColor(column.status)}`} />
               </div>
             </div>
-            {/* Título da coluna */}
             <h3 className="text-sm font-semibold text-gray-900">
               {column.title}
             </h3>
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+              {cards.length}
+            </span>
           </div>
-          {/* Botões de ação alinhados à direita */}
           <div className="flex items-center gap-1">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -84,7 +76,6 @@ export function KanbanColumn({
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                  onClick={(e) => e.stopPropagation()}
                 >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
@@ -105,32 +96,50 @@ export function KanbanColumn({
           </div>
         </div>
 
-        {/* Cards - Área droppable */}
+        {/* ÁREA DROPPABLE - Ocupa TODA a área restante da coluna */}
         <div 
           ref={setNodeRef}
-          className={`flex-1 overflow-y-auto pr-1 min-h-[150px] ${
-            isOver && cards.length === 0 ? "bg-primary/5" : ""
+          className={`flex-1 p-3 overflow-y-auto transition-all min-h-[400px] ${
+            isOver ? "bg-blue-50 ring-2 ring-blue-400 ring-inset rounded-b-lg" : ""
           }`}
         >
           <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
-            <div className="space-y-3 min-h-[100px]">
-              {cards.map((card) => (
-                <KanbanCard
-                  key={card.id}
-                  card={card}
-                  onEdit={onEditCard}
-                  onDelete={onDeleteCard}
-                  onViewDetails={onViewCardDetails}
-                />
-              ))}
-              {/* Área vazia para drop quando não há cards */}
+            {/* Container que ocupa 100% da altura */}
+            <div className="h-full min-h-full flex flex-col">
+              {/* Cards existentes */}
+              <div className="space-y-3">
+                {cards.map((card) => (
+                  <KanbanCard
+                    key={card.id}
+                    card={card}
+                    onEdit={onEditCard}
+                    onDelete={onDeleteCard}
+                    onViewDetails={onViewCardDetails}
+                  />
+                ))}
+              </div>
+              
+              {/* Placeholder que SEMPRE ocupa o espaço restante quando vazio */}
               {cards.length === 0 && (
-                <div className={`h-32 flex items-center justify-center text-sm text-gray-400 border-2 border-dashed rounded-lg transition-colors ${
-                  isOver ? "border-primary bg-primary/10 text-primary" : "border-gray-300"
-                }`}>
+                <div className={`
+                  flex-1 min-h-[350px] flex flex-col items-center justify-center 
+                  text-sm text-gray-400 border-2 border-dashed rounded-lg 
+                  transition-all
+                  ${isOver 
+                    ? "border-blue-400 bg-blue-100 text-blue-600" 
+                    : "border-gray-300"
+                  }
+                `}>
                   <div className="text-center">
-                    <p className="font-medium">Solte cards aqui</p>
-                    <p className="text-xs mt-1">Arraste um card para esta coluna</p>
+                    <p className="font-medium text-base">
+                      {isOver ? "Solte aqui!" : "Nenhum agendamento"}
+                    </p>
+                    <p className="text-xs mt-1">
+                      {isOver 
+                        ? "Solte o card para adicionar nesta coluna" 
+                        : "Arraste cards para esta coluna"
+                      }
+                    </p>
                   </div>
                 </div>
               )}
@@ -141,4 +150,3 @@ export function KanbanColumn({
     </div>
   );
 }
-

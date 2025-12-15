@@ -11,7 +11,7 @@ import { EmployeePerformanceCard } from "@/components/dashboard/EmployeePerforma
 import { getTransactions, getAppointments, getClients, getProfessionals } from "@/lib/supabase-helpers";
 import { getPeriodDates, type PeriodFilter } from "@/lib/date-filters";
 import { formatCurrency } from "@/lib/formatters";
-import { startOfDay, endOfDay, isSameDay, format } from "date-fns";
+import { startOfDay, endOfDay, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Database } from "@/types/database";
 
@@ -20,15 +20,10 @@ function parseLocalDate(dateString: string | Date): Date {
   if (dateString instanceof Date) {
     return dateString;
   }
-  
-  // Se a string já tem hora/timezone, usar new Date normalmente
-  if (dateString.includes('T') || dateString.includes(' ')) {
+  if (dateString.includes("T") || dateString.includes(" ")) {
     return new Date(dateString);
   }
-  
-  // Se for apenas data (YYYY-MM-DD), criar Date no timezone local
-  // Isso evita o problema de deslocamento de 1 dia
-  const [year, month, day] = dateString.split('-').map(Number);
+  const [year, month, day] = dateString.split("-").map(Number);
   return new Date(year, month - 1, day);
 }
 
@@ -70,35 +65,23 @@ export default function DashboardPage() {
     }
   };
 
-  // Filtrar dados por período
   const { start, end } = useMemo(() => getPeriodDates(period), [period]);
 
-  // Formatar período para exibição
   const periodDisplay = useMemo(() => {
     if (period === "hoje") {
       return format(start, "dd/MM/yyyy", { locale: ptBR });
-    } else if (period === "ultimos-7-dias") {
-      const startFormatted = format(start, "dd/MM", { locale: ptBR });
-      const endFormatted = format(end, "dd/MM", { locale: ptBR });
-      const year = format(start, "yyyy", { locale: ptBR });
-      return `${startFormatted} - ${endFormatted} de ${year}`;
-    } else {
-      const startFormatted = format(start, "dd/MM", { locale: ptBR });
-      const endFormatted = format(end, "dd/MM", { locale: ptBR });
-      const year = format(start, "yyyy", { locale: ptBR });
-      return `${startFormatted} - ${endFormatted} de ${year}`;
     }
+    const startFormatted = format(start, "dd/MM", { locale: ptBR });
+    const endFormatted = format(end, "dd/MM", { locale: ptBR });
+    const year = format(start, "yyyy", { locale: ptBR });
+    return `${startFormatted} - ${endFormatted} de ${year}`;
   }, [period, start, end]);
 
   const filteredTransactions = useMemo(() => {
     const periodStart = startOfDay(start);
     const periodEnd = endOfDay(end);
-    
     return transactions.filter((t) => {
-      // Converter a data da transação para Date usando parseLocalDate para evitar deslocamento de timezone
       const transactionDate = startOfDay(parseLocalDate(t.date));
-      
-      // Verificar se a data está dentro do período
       return transactionDate >= periodStart && transactionDate <= periodEnd;
     });
   }, [transactions, start, end]);
@@ -121,16 +104,13 @@ export default function DashboardPage() {
     });
   }, [clients, start, end]);
 
-  // Calcular métricas
   const faturamento = useMemo(() => {
     return filteredTransactions
       .filter((t) => t.type === "income" && t.status === "completed")
       .reduce((sum, t) => sum + Number(t.amount), 0);
   }, [filteredTransactions]);
 
-  const totalAgendamentos = useMemo(() => {
-    return filteredAppointments.length;
-  }, [filteredAppointments]);
+  const totalAgendamentos = useMemo(() => filteredAppointments.length, [filteredAppointments]);
 
   const totalCancelamentos = useMemo(() => {
     return filteredAppointments.filter((a) => {
@@ -139,7 +119,6 @@ export default function DashboardPage() {
     }).length;
   }, [filteredAppointments]);
 
-  // Próximos agendamentos (todos do período, ordenados por data e horário)
   const proximosAgendamentos = useMemo(() => {
     return filteredAppointments
       .slice()
@@ -150,28 +129,17 @@ export default function DashboardPage() {
           dateA.getFullYear(),
           dateA.getMonth(),
           dateA.getDate(),
-          ...(a.start_time ? a.start_time.split(':').map(Number) : [0, 0])
+          ...(a.start_time ? a.start_time.split(":").map(Number) : [0, 0])
         );
         const dateTimeB = new Date(
           dateB.getFullYear(),
           dateB.getMonth(),
           dateB.getDate(),
-          ...(b.start_time ? b.start_time.split(':').map(Number) : [0, 0])
+          ...(b.start_time ? b.start_time.split(":").map(Number) : [0, 0])
         );
         return dateTimeA.getTime() - dateTimeB.getTime();
       })
-      .map((a): {
-        id: string;
-        clientId: string;
-        serviceIds: string[];
-        professionalId: string;
-        date: Date;
-        startTime: string;
-        endTime: string;
-        status: string;
-        totalAmount: number;
-        notes: string;
-      } => ({
+      .map((a) => ({
         id: a.id,
         clientId: a.client_id,
         serviceIds: a.service_ids || [],
@@ -185,37 +153,27 @@ export default function DashboardPage() {
       }));
   }, [filteredAppointments]);
 
-  // Desempenho dos profissionais - contar agendamentos concluídos no período
   const desempenhoProfissionais = useMemo(() => {
     const performance: Record<string, { count: number; professional: ProfessionalRow }> = {};
-
     filteredAppointments.forEach((appointment) => {
       const status = String(appointment.status || "").toLowerCase();
       const isConcluded = status === "concluido" || status === "completed";
-
       if (isConcluded && appointment.professional_id) {
         const prof = professionals.find((p) => p.id === appointment.professional_id);
         if (!prof) return;
-
         if (!performance[appointment.professional_id]) {
-          performance[appointment.professional_id] = {
-            count: 0,
-            professional: prof,
-          };
+          performance[appointment.professional_id] = { count: 0, professional: prof };
         }
-
         performance[appointment.professional_id].count += 1;
       }
     });
-
     return Object.values(performance).map((item) => ({
       name: item.professional.name,
-      value: item.count, // total de atendimentos concluídos
+      value: item.count,
       color: item.professional.color || "#3b82f6",
     }));
   }, [filteredAppointments, professionals]);
 
-  // Converter appointments para formato esperado pelo componente
   const appointmentsForCard = useMemo(() => {
     return proximosAgendamentos.map((apt) => ({
       id: apt.id,
@@ -231,7 +189,6 @@ export default function DashboardPage() {
     }));
   }, [proximosAgendamentos]);
 
-  // Converter clients para formato esperado
   const clientsForCard = useMemo(() => {
     return clients.map((c) => ({
       id: c.id,
