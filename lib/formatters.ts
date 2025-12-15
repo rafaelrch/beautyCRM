@@ -6,11 +6,22 @@ export const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
+// Helper para converter string de data (YYYY-MM-DD) para Date no timezone local
+const parseLocalDate = (dateString: string): Date => {
+  // Se a string já tem hora/timezone, usar new Date normalmente
+  if (dateString.includes('T') || dateString.includes(' ')) {
+    return new Date(dateString);
+  }
+  // Se for apenas data (YYYY-MM-DD), criar Date no timezone local
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 // Date formatters - handle both Date objects and date strings
 export const formatDate = (date: Date | string | null | undefined): string => {
   if (!date) return '';
   try {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    const dateObj = typeof date === 'string' ? parseLocalDate(date) : date;
     if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return '';
     return new Intl.DateTimeFormat('pt-BR').format(dateObj);
   } catch (error) {

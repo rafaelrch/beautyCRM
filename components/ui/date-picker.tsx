@@ -39,6 +39,13 @@ export function DatePicker({
   const date = React.useMemo(() => {
     if (!value) return undefined;
     if (value instanceof Date) return value;
+    
+    // Se for string no formato YYYY-MM-DD, criar Date no timezone local para evitar problemas
+    if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = value.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+    
     const parsed = new Date(value);
     return isNaN(parsed.getTime()) ? undefined : parsed;
   }, [value]);
@@ -91,9 +98,16 @@ export function DatePicker({
           onSelect={handleSelect}
           disabled={minDate ? (date) => date < minDate : undefined}
           initialFocus
+          captionLayout="dropdown"
+          fromYear={1900}
+          toYear={new Date().getFullYear()}
         />
       </PopoverContent>
     </Popover>
   );
 }
+
+
+
+
 

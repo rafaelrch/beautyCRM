@@ -8,19 +8,23 @@ interface CardAgendamentoProps {
   nomeCliente: string;
   nomeServico: string;
   corProfissional: string;
-  status: "pendente" | "cancelado" | "concluido" | "scheduled" | "completed" | "cancelled" | "no-show";
+  status: "agendado" | "confirmado" | "concluido" | "cancelado" | "nao_compareceu" | "pendente" | "scheduled" | "completed" | "cancelled" | "no-show";
   duracao: number;
   onClick?: () => void;
   onDoubleClick?: () => void;
 }
 
 const statusConfig = {
-  scheduled: { icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50", border: "border-green-200" },
-  pendente: { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200" },
+  agendado: { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200" },
+  confirmado: { icon: CheckCircle2, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" },
+  concluido: { icon: CheckCircle, color: "text-green-600", bg: "bg-green-50", border: "border-green-200" },
   cancelado: { icon: XCircle, color: "text-red-600", bg: "bg-red-50", border: "border-red-200" },
+  nao_compareceu: { icon: XCircle, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200" },
+  // Compatibilidade com status antigos
+  scheduled: { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200" },
+  pendente: { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200" },
   cancelled: { icon: XCircle, color: "text-red-600", bg: "bg-red-50", border: "border-red-200" },
-  concluido: { icon: CheckCircle, color: "text-gray-600", bg: "bg-gray-50", border: "border-gray-200" },
-  completed: { icon: CheckCircle, color: "text-gray-600", bg: "bg-gray-50", border: "border-gray-200" },
+  completed: { icon: CheckCircle, color: "text-green-600", bg: "bg-green-50", border: "border-green-200" },
   "no-show": { icon: XCircle, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200" },
 };
 
@@ -35,7 +39,7 @@ export function CardAgendamento({
   onDoubleClick,
 }: CardAgendamentoProps) {
   const statusKey = status as keyof typeof statusConfig;
-  const statusInfo = statusConfig[statusKey] || statusConfig.pendente;
+  const statusInfo = statusConfig[statusKey] || statusConfig.agendado;
   const Icon = statusInfo.icon;
 
   // Calcular altura baseada na duração (aproximadamente 4px por minuto, mínimo 40px)

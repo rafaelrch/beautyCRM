@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -50,7 +50,6 @@ export function KanbanBoard({
 }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const scrollIntervalRef = useRef<number | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -65,59 +64,7 @@ export function KanbanBoard({
     ? cards.find((card) => card.id === activeId)
     : null;
 
-  // Auto-scroll horizontal
-  useEffect(() => {
-    if (!activeId || !scrollContainerRef.current) {
-      if (scrollIntervalRef.current) {
-        cancelAnimationFrame(scrollIntervalRef.current);
-        scrollIntervalRef.current = null;
-      }
-      return;
-    }
-
-    const container = scrollContainerRef.current;
-    const scrollSpeed = 10;
-    const scrollZone = 100; // Zona de ativação do scroll (px das bordas)
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = container.getBoundingClientRect();
-      const mouseX = e.clientX;
-      const leftEdge = rect.left;
-      const rightEdge = rect.right;
-
-      if (scrollIntervalRef.current) {
-        cancelAnimationFrame(scrollIntervalRef.current);
-      }
-
-      if (mouseX < leftEdge + scrollZone) {
-        // Scroll para a esquerda
-        scrollIntervalRef.current = requestAnimationFrame(function scroll() {
-          if (container.scrollLeft > 0) {
-            container.scrollLeft -= scrollSpeed;
-            scrollIntervalRef.current = requestAnimationFrame(scroll);
-          }
-        });
-      } else if (mouseX > rightEdge - scrollZone) {
-        // Scroll para a direita
-        scrollIntervalRef.current = requestAnimationFrame(function scroll() {
-          const maxScroll = container.scrollWidth - container.clientWidth;
-          if (container.scrollLeft < maxScroll) {
-            container.scrollLeft += scrollSpeed;
-            scrollIntervalRef.current = requestAnimationFrame(scroll);
-          }
-        });
-      }
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      if (scrollIntervalRef.current) {
-        cancelAnimationFrame(scrollIntervalRef.current);
-      }
-    };
-  }, [activeId]);
+  // Auto-scroll horizontal removido - não é mais necessário pois o Kanban ocupa toda a largura
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -257,9 +204,8 @@ export function KanbanBoard({
     >
       <div
         ref={scrollContainerRef}
-        className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4"
+        className="flex gap-4 overflow-y-hidden pb-4 w-full"
         style={{ 
-          scrollBehavior: "smooth",
           width: "100%",
           maxWidth: "100%",
           boxSizing: "border-box"

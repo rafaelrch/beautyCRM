@@ -62,10 +62,6 @@ export function CalendarioMensal({
     setDataAtual(addMonths(dataAtual, 1));
   };
 
-  const irParaHoje = () => {
-    setDataAtual(new Date());
-  };
-
   const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
   return (
@@ -81,9 +77,6 @@ export function CalendarioMensal({
           </h2>
           <Button variant="outline" size="icon" onClick={irParaProximoMes}>
             <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" onClick={irParaHoje}>
-            Hoje
           </Button>
         </div>
       </div>

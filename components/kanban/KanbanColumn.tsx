@@ -46,15 +46,17 @@ export function KanbanColumn({
   // Função para obter cor do indicador de status
   const getStatusIndicatorColor = (status: string): string => {
     const colors: Record<string, string> = {
-      scheduled: "bg-yellow-500",
-      completed: "bg-green-500",
-      cancelled: "bg-red-500",
+      agendado: "bg-yellow-500",
+      confirmado: "bg-blue-500",
+      concluido: "bg-green-500",
+      cancelado: "bg-red-500",
+      nao_compareceu: "bg-orange-500",
     };
     return colors[status] || "bg-gray-400";
   };
 
   return (
-    <div className="flex-shrink-0 w-80">
+    <div className="flex-1 min-w-0 flex-shrink-0">
       <div
         className={`h-full flex flex-col bg-gray-50 rounded-lg p-3 min-h-[200px] ${
           isOver ? "ring-2 ring-primary ring-offset-2 bg-blue-50" : ""

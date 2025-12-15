@@ -3,12 +3,15 @@
 import React, { useRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { format } from "date-fns";
 import { 
   Calendar,
+  Clock,
   Edit,
   Trash2,
   Eye,
-  MoreVertical
+  MoreVertical,
+  DollarSign
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -28,9 +31,16 @@ interface KanbanCardProps {
 // Função para obter cor do status dot
 const getStatusDotColor = (status: string): string => {
   const colors: Record<string, string> = {
+    agendado: "bg-yellow-500",
+    confirmado: "bg-blue-500",
+    concluido: "bg-green-500",
+    cancelado: "bg-red-500",
+    nao_compareceu: "bg-orange-500",
+    // Compatibilidade com status antigos
     scheduled: "bg-yellow-500",
     completed: "bg-green-500",
     cancelled: "bg-red-500",
+    "no-show": "bg-orange-500",
   };
   return colors[status] || "bg-gray-400";
 };
@@ -57,11 +67,13 @@ export function KanbanCard({ card, onEdit, onDelete, onViewDetails }: KanbanCard
     opacity: isDragging ? 0.5 : 1,
   };
 
-  // Obter data formatada (usando a data do agendamento se disponível)
-  const formatDate = (horario: string): string => {
-    // Por enquanto, retornamos apenas o horário
-    // Em produção, você pode usar a data real do agendamento
-    return horario;
+  // Formatar valor monetário
+  const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+    }).format(value);
   };
 
   // Estado para rastrear se houve movimento durante o clique (para diferenciar clique de drag)
@@ -135,11 +147,23 @@ export function KanbanCard({ card, onEdit, onDelete, onViewDetails }: KanbanCard
           {/* Ícone do status */}
           <div className={`w-2 h-2 rounded-full ${getStatusDotColor(card.status)}`} />
           
-          {/* Data com ícone de calendário */}
+          {/* Data e horário com ícones */}
           <div className="flex items-center gap-1.5 text-gray-500">
             <Calendar className="h-3.5 w-3.5" />
-            <span className="text-xs">{formatDate(card.horario)}</span>
+            <span className="text-xs">{card.data ? format(card.data, "dd/MM") : ""}</span>
+            <Clock className="h-3.5 w-3.5" />
+            <span className="text-xs">{card.horario}</span>
           </div>
+          
+          {/* Valor do serviço com ícone de cifrão */}
+          {card.valor && card.valor > 0 && (
+            <div className="flex items-center gap-1 text-gray-600">
+              <DollarSign className="h-3.5 w-3.5" />
+              <span className="text-xs font-medium">
+                {formatCurrency(card.valor)}
+              </span>
+            </div>
+          )}
           
           {/* Menu de opções alinhado à direita */}
           <div className="flex items-center ml-auto" onClick={(e) => e.stopPropagation()}>

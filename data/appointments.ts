@@ -45,7 +45,7 @@ const generateAppointments = (): Appointment[] => {
       date,
       startTime,
       endTime,
-      status: status as 'scheduled' | 'completed' | 'cancelled' | 'no-show',
+      status: status as Appointment["status"],
       totalAmount,
       notes: Math.random() > 0.7 ? 'Cliente pontual' : '',
     });
@@ -70,7 +70,7 @@ const generateAppointments = (): Appointment[] => {
       date: new Date(),
       startTime,
       endTime,
-      status: 'scheduled',
+      status: 'scheduled' as Appointment["status"],
       totalAmount: service.price,
       notes: '',
     });
@@ -97,7 +97,7 @@ const generateAppointments = (): Appointment[] => {
       date: tomorrow,
       startTime,
       endTime,
-      status: 'scheduled',
+      status: 'scheduled' as Appointment["status"],
       totalAmount: service.price,
       notes: 'kanbanColumnId:em-contato',
     });

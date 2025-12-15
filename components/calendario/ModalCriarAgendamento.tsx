@@ -38,7 +38,7 @@ interface Agendamento {
   servicoId: string;
   data: string;
   horario: string;
-  status: "pendente" | "confirmado" | "cancelado" | "concluido";
+  status: "pendente" | "agendado" | "confirmado" | "cancelado" | "concluido" | "nao_compareceu";
   observacao?: string;
 }
 
@@ -71,7 +71,7 @@ export function ModalCriarAgendamento({
     servicoId: "",
     data: dataPreSelecionada ? format(dataPreSelecionada, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
     horario: "09:00",
-    status: "pendente",
+    status: "agendado" as "agendado" | "confirmado" | "concluido" | "cancelado" | "nao_compareceu",
     observacao: "",
   });
 
@@ -143,7 +143,8 @@ export function ModalCriarAgendamento({
     if (agendamentoEditando?.id) {
       onSave({ ...formData, id: agendamentoEditando.id });
     } else {
-      onSave(formData);
+      // Garante que novos agendamentos sempre tenham status "agendado"
+      onSave({ ...formData, status: "agendado" });
     }
     onClose();
   };
@@ -184,11 +185,17 @@ export function ModalCriarAgendamento({
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clientes.map((cliente) => (
-                    <SelectItem key={cliente.id} value={cliente.id}>
-                      {cliente.nome}
-                    </SelectItem>
-                  ))}
+                  {!clientes || clientes.length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      Nenhum cliente cadastrado. Cadastre clientes na página de Clientes primeiro.
+                    </div>
+                  ) : (
+                    clientes.map((cliente) => (
+                      <SelectItem key={cliente.id} value={cliente.id}>
+                        {cliente.nome}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -276,24 +283,6 @@ export function ModalCriarAgendamento({
               </Select>
             </div>
 
-            <div>
-              <Label htmlFor="status" className="mb-[3px]">Status *</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: any) => setFormData({ ...formData, status: value })}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pendente">Pendente</SelectItem>
-                  <SelectItem value="confirmado">Confirmado</SelectItem>
-                  <SelectItem value="cancelado">Cancelado</SelectItem>
-                  <SelectItem value="concluido">Concluído</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           <div>
