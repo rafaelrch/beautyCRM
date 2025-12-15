@@ -33,22 +33,11 @@ export function Header({ title, actionLabel = "+ New lead", onAction, onFilter, 
         <Button 
           variant="default" 
           onClick={onAction}
-          className="bg-gray-50 hover:bg-gray-100 text-foreground border border-gray-200 shadow-sm"
+          className="bg-[#320fff] hover:bg-[#320fff]/80 text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           {actionLabel}
         </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>Export</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </div>
   );
