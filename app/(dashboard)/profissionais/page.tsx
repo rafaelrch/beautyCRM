@@ -9,18 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit, Trash2, Search } from "lucide-react";
+import { Edit, Trash2, Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { storage, initializeStorage } from "@/lib/storage";
-import { mockClients, mockServices, mockTransactions, mockAppointments, mockProducts, mockMovements, mockSalonConfig } from "@/data";
-import { mockProfissionais } from "@/data/professionals";
+import { getProfessionals, createProfessional, updateProfessional, deleteProfessional } from "@/lib/supabase-helpers";
+import { useToast } from "@/hooks/use-toast";
+import type { Database } from "@/types/database";
 
-interface Profissional {
-  id: string;
-  nome: string;
-  cor: string;
-  especialidade: string;
-}
+type Professional = Database["public"]["Tables"]["professionals"]["Row"];
 
 const especialidades = [
   "Cabelo",
@@ -47,37 +42,38 @@ const coresPredefinidas = [
 ];
 
 export default function ProfissionaisPage() {
-  const [profissionais, setProfissionais] = useState<Profissional[]>([]);
+  const [profissionais, setProfissionais] = useState<Professional[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingProfissional, setEditingProfissional] = useState<Profissional | null>(null);
+  const [editingProfissional, setEditingProfissional] = useState<Professional | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [formCor, setFormCor] = useState("#FF6B6B");
   const [formEspecialidade, setFormEspecialidade] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    initializeStorage({
-      clients: mockClients,
-      services: mockServices,
-      transactions: mockTransactions,
-      products: mockProducts,
-      appointments: mockAppointments,
-      movements: mockMovements,
-      salonConfig: mockSalonConfig,
-    });
-    
-    // Carregar profissionais do localStorage ou usar mock
-    const stored = storage.get<Profissional>("professionals");
-    if (stored.length === 0) {
-      storage.set("professionals", mockProfissionais);
-      setProfissionais(mockProfissionais);
-    } else {
-      setProfissionais(stored);
-    }
+    loadProfessionals();
   }, []);
 
+  const loadProfessionals = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getProfessionals();
+      setProfissionais(data);
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao carregar profissionais",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const filteredProfissionais = profissionais.filter((prof) =>
-    prof.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    prof.especialidade.toLowerCase().includes(searchTerm.toLowerCase())
+    prof.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (prof.specialties && prof.specialties.some((esp: string) => esp.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
   const handleAddProfissional = () => {
@@ -87,44 +83,85 @@ export default function ProfissionaisPage() {
     setIsDialogOpen(true);
   };
 
-  const handleEditProfissional = (profissional: Profissional) => {
+  const handleEditProfissional = (profissional: Professional) => {
     setEditingProfissional(profissional);
-    setFormCor(profissional.cor);
-    setFormEspecialidade(profissional.especialidade);
+    setFormCor(profissional.color || "#FF6B6B");
+    setFormEspecialidade(profissional.specialties && profissional.specialties.length > 0 ? profissional.specialties[0] : "");
     setIsDialogOpen(true);
   };
 
-  const handleDeleteProfissional = (id: string) => {
-    if (confirm("Tem certeza que deseja excluir este profissional?")) {
-      storage.delete<Profissional>("professionals", id);
-      setProfissionais(storage.get<Profissional>("professionals"));
+  const handleDeleteProfissional = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este profissional?")) return;
+
+    try {
+      await deleteProfessional(id);
+      toast({
+        title: "Sucesso",
+        description: "Profissional excluído com sucesso!",
+      });
+      loadProfessionals();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir profissional",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleSaveProfissional = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveProfissional = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    const profissionalData: Omit<Profissional, "id"> = {
-      nome: formData.get("nome") as string,
-      cor: formCor,
-      especialidade: formEspecialidade,
-    };
-
-    if (editingProfissional) {
-      storage.update<Profissional>("professionals", editingProfissional.id, profissionalData);
-    } else {
-      storage.add<Profissional>("professionals", {
-        ...profissionalData,
-        id: `prof${Date.now()}`,
+    if (!formEspecialidade) {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione uma especialidade",
+        variant: "destructive",
       });
+      return;
     }
 
-    setProfissionais(storage.get<Profissional>("professionals"));
-    setIsDialogOpen(false);
-    setEditingProfissional(null);
-    setFormCor("#FF6B6B");
-    setFormEspecialidade("");
+    try {
+      if (editingProfissional) {
+        await updateProfessional(editingProfissional.id, {
+          name: formData.get("nome") as string,
+          color: formCor,
+          specialties: [formEspecialidade],
+          phone: formData.get("phone") as string || null,
+          email: formData.get("email") as string || null,
+        });
+        toast({
+          title: "Sucesso",
+          description: "Profissional atualizado com sucesso!",
+        });
+      } else {
+        await createProfessional({
+          name: formData.get("nome") as string,
+          color: formCor,
+          specialties: [formEspecialidade],
+          phone: formData.get("phone") as string || null,
+          email: formData.get("email") as string || null,
+          active: true,
+        });
+        toast({
+          title: "Sucesso",
+          description: "Profissional criado com sucesso!",
+        });
+      }
+
+      setIsDialogOpen(false);
+      setEditingProfissional(null);
+      setFormCor("#FF6B6B");
+      setFormEspecialidade("");
+      loadProfessionals();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao salvar profissional",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -136,8 +173,8 @@ export default function ProfissionaisPage() {
       />
 
       {/* Filters */}
-      <div className="flex items-center gap-4 bg-white rounded-xl border border-border p-4">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-white rounded-xl border border-border p-4">
+        <div className="relative w-full sm:flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
@@ -150,71 +187,87 @@ export default function ProfissionaisPage() {
       </div>
 
       {/* Professionals Table */}
-      <div className="bg-white rounded-xl border border-border p-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Cor</TableHead>
-              <TableHead>Especialidade</TableHead>
-              <TableHead className="w-32">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredProfissionais.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                  Nenhum profissional encontrado. Adicione o primeiro profissional.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredProfissionais.map((profissional) => (
-                <TableRow key={profissional.id} className="hover:bg-muted/50">
-                  <TableCell className="font-medium">{profissional.nome}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-6 h-6 rounded-full border border-border"
-                        style={{ backgroundColor: profissional.cor }}
-                      />
-                      <span className="text-sm text-muted-foreground">{profissional.cor}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                      {profissional.especialidade}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleEditProfissional(profissional)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleDeleteProfissional(profissional.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+      <div className="bg-white rounded-xl border border-border p-4 sm:p-6">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table className="min-w-[640px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Cor</TableHead>
+                  <TableHead>Especialidade</TableHead>
+                  <TableHead className="w-32">Ações</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredProfissionais.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                      Nenhum profissional encontrado. Adicione o primeiro profissional.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredProfissionais.map((profissional) => (
+                    <TableRow key={profissional.id} className="hover:bg-muted/50">
+                      <TableCell className="font-medium">{profissional.name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-6 h-6 rounded-full border border-border"
+                            style={{ backgroundColor: profissional.color || "#FF6B6B" }}
+                          />
+                          <span className="text-sm text-muted-foreground">{profissional.color || "#FF6B6B"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {profissional.specialties && profissional.specialties.length > 0 ? (
+                          <div className="flex gap-1 flex-wrap">
+                            {profissional.specialties.map((esp, idx) => (
+                              <Badge key={idx} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                {esp}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">Sem especialidade</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleEditProfissional(profissional)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteProfissional(profissional.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>
               {editingProfissional ? "Editar Profissional" : "Adicionar Profissional"}
@@ -226,10 +279,32 @@ export default function ProfissionaisPage() {
               <Input
                 id="nome"
                 name="nome"
-                defaultValue={editingProfissional?.nome}
+                defaultValue={editingProfissional?.name}
                 required
                 placeholder="Nome completo do profissional"
               />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="phone" className="mb-[3px]">Telefone</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  defaultValue={editingProfissional?.phone || ""}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email" className="mb-[3px]">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  defaultValue={editingProfissional?.email || ""}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
             </div>
 
             <div>
@@ -254,7 +329,7 @@ export default function ProfissionaisPage() {
 
             <div>
               <Label htmlFor="cor" className="mb-[3px]">Cor de Identificação *</Label>
-              <div className="grid grid-cols-6 gap-2 mt-2">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-2">
                 {coresPredefinidas.map((cor) => (
                   <button
                     key={cor}
