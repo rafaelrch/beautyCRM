@@ -1,324 +1,354 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { KpiCard } from "@/components/kpi/KpiCard";
-import { Table, TableBody, TableCell, TableHead, TableHeader as TableHeaderComponent, TableRow } from "@/components/ui/table";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Area, AreaChart, Pie, PieChart, Cell } from "recharts";
-import { formatCurrency, formatDate } from "@/lib/formatters";
-import { storage, initializeStorage } from "@/lib/storage";
-import { mockClients, mockServices, mockTransactions, mockAppointments, mockProducts, mockMovements, mockSalonConfig } from "@/data";
-import { mockProfissionais } from "@/data/professionals";
-import { isSameDay, startOfMonth, subDays, eachDayOfInterval, endOfMonth, format } from "date-fns";
-import type { Transaction, Appointment, Product, Client } from "@/types";
+import { useState, useEffect, useMemo } from "react";
+import { DollarSign, Calendar, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MetricCard } from "@/components/dashboard/MetricCard";
+import { FinancialChartCard } from "@/components/dashboard/FinancialChartCard";
+import { UpcomingAppointmentsCard } from "@/components/dashboard/UpcomingAppointmentsCard";
+import { NewClientsCard } from "@/components/dashboard/NewClientsCard";
+import { EmployeePerformanceCard } from "@/components/dashboard/EmployeePerformanceCard";
+import { getTransactions, getAppointments, getClients, getProfessionals } from "@/lib/supabase-helpers";
+import { getPeriodDates, type PeriodFilter } from "@/lib/date-filters";
+import { formatCurrency } from "@/lib/formatters";
+import { startOfDay, endOfDay, isSameDay, format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import type { Database } from "@/types/database";
+
+// Helper para converter string de data para Date sem problemas de timezone
+function parseLocalDate(dateString: string | Date): Date {
+  if (dateString instanceof Date) {
+    return dateString;
+  }
+  
+  // Se a string já tem hora/timezone, usar new Date normalmente
+  if (dateString.includes('T') || dateString.includes(' ')) {
+    return new Date(dateString);
+  }
+  
+  // Se for apenas data (YYYY-MM-DD), criar Date no timezone local
+  // Isso evita o problema de deslocamento de 1 dia
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+type TransactionRow = Database["public"]["Tables"]["transactions"]["Row"];
+type AppointmentRow = Database["public"]["Tables"]["appointments"]["Row"];
+type ClientRow = Database["public"]["Tables"]["clients"]["Row"];
+type ProfessionalRow = Database["public"]["Tables"]["professionals"]["Row"];
 
 export default function DashboardPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
+  const [period, setPeriod] = useState<PeriodFilter>("hoje");
+  const [transactions, setTransactions] = useState<TransactionRow[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
+  const [clients, setClients] = useState<ClientRow[]>([]);
+  const [professionals, setProfessionals] = useState<ProfessionalRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize storage with mock data
-    initializeStorage({
-      clients: mockClients,
-      services: mockServices,
-      transactions: mockTransactions,
-      products: mockProducts,
-      appointments: mockAppointments,
-      movements: mockMovements,
-      salonConfig: mockSalonConfig,
-    });
-
-    // Load data from storage
-    setTransactions(storage.get<Transaction>('transactions'));
-    setAppointments(storage.get<Appointment>('appointments'));
-    setProducts(storage.get<Product>('products'));
-    setClients(storage.get<Client>('clients'));
-    setIsLoading(false);
+    loadData();
   }, []);
 
-  const today = new Date();
-  const yesterday = subDays(today, 1);
-  const thisMonth = startOfMonth(today);
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      const [transactionsData, appointmentsData, clientsData, professionalsData] = await Promise.all([
+        getTransactions().catch(() => []),
+        getAppointments().catch(() => []),
+        getClients().catch(() => []),
+        getProfessionals().catch(() => []),
+      ]);
 
-  // Calculate KPIs
-  const todayAppointments = appointments.filter(apt => 
-    isSameDay(new Date(apt.date), today) && apt.status === 'scheduled'
-  ).length;
+      setTransactions(transactionsData);
+      setAppointments(appointmentsData);
+      setClients(clientsData);
+      setProfessionals(professionalsData);
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const yesterdayAppointments = appointments.filter(apt => 
-    isSameDay(new Date(apt.date), yesterday) && apt.status === 'scheduled'
-  ).length;
+  // Filtrar dados por período
+  const { start, end } = useMemo(() => getPeriodDates(period), [period]);
 
-  const appointmentsChange = yesterdayAppointments > 0 
-    ? Math.round(((todayAppointments - yesterdayAppointments) / yesterdayAppointments) * 100)
-    : 0;
+  // Formatar período para exibição
+  const periodDisplay = useMemo(() => {
+    if (period === "hoje") {
+      return format(start, "dd/MM/yyyy", { locale: ptBR });
+    } else if (period === "ultimos-7-dias") {
+      const startFormatted = format(start, "dd/MM", { locale: ptBR });
+      const endFormatted = format(end, "dd/MM", { locale: ptBR });
+      const year = format(start, "yyyy", { locale: ptBR });
+      return `${startFormatted} - ${endFormatted} de ${year}`;
+    } else {
+      const startFormatted = format(start, "dd/MM", { locale: ptBR });
+      const endFormatted = format(end, "dd/MM", { locale: ptBR });
+      const year = format(start, "yyyy", { locale: ptBR });
+      return `${startFormatted} - ${endFormatted} de ${year}`;
+    }
+  }, [period, start, end]);
 
-  const todayRevenue = transactions
-    .filter(t => t.type === 'income' && isSameDay(new Date(t.date), today) && t.status === 'completed')
-    .reduce((sum, t) => sum + t.amount, 0);
+  const filteredTransactions = useMemo(() => {
+    const periodStart = startOfDay(start);
+    const periodEnd = endOfDay(end);
+    
+    return transactions.filter((t) => {
+      // Converter a data da transação para Date usando parseLocalDate para evitar deslocamento de timezone
+      const transactionDate = startOfDay(parseLocalDate(t.date));
+      
+      // Verificar se a data está dentro do período
+      return transactionDate >= periodStart && transactionDate <= periodEnd;
+    });
+  }, [transactions, start, end]);
 
-  const yesterdayRevenue = transactions
-    .filter(t => t.type === 'income' && isSameDay(new Date(t.date), yesterday) && t.status === 'completed')
-    .reduce((sum, t) => sum + t.amount, 0);
+  const filteredAppointments = useMemo(() => {
+    return appointments.filter((a) => {
+      const appointmentDate = startOfDay(parseLocalDate(a.date));
+      const periodStart = startOfDay(start);
+      const periodEnd = startOfDay(end);
+      return appointmentDate >= periodStart && appointmentDate <= periodEnd;
+    });
+  }, [appointments, start, end]);
 
-  const revenueChange = yesterdayRevenue > 0
-    ? Math.round(((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100)
-    : 0;
+  const filteredClients = useMemo(() => {
+    return clients.filter((c) => {
+      const registrationDate = startOfDay(parseLocalDate(c.created_at));
+      const periodStart = startOfDay(start);
+      const periodEnd = startOfDay(end);
+      return registrationDate >= periodStart && registrationDate <= periodEnd;
+    });
+  }, [clients, start, end]);
 
-  // Clientes novos no mês
-  const newClientsThisMonth = clients.filter(c => {
-    const registrationDate = new Date(c.registrationDate);
-    return registrationDate >= thisMonth;
-  }).length;
+  // Calcular métricas
+  const faturamento = useMemo(() => {
+    return filteredTransactions
+      .filter((t) => t.type === "income" && t.status === "completed")
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+  }, [filteredTransactions]);
 
-  // Recent transactions
-  const recentTransactions = transactions
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5);
+  const totalAgendamentos = useMemo(() => {
+    return filteredAppointments.length;
+  }, [filteredAppointments]);
 
-  // Top services this month
-  const serviceRevenue: Record<string, number> = {};
-  transactions
-    .filter(t => t.type === 'income' && new Date(t.date) >= thisMonth && t.status === 'completed')
-    .forEach(t => {
-      t.serviceIds?.forEach(serviceId => {
-        serviceRevenue[serviceId] = (serviceRevenue[serviceId] || 0) + t.amount;
-      });
+  const totalCancelamentos = useMemo(() => {
+    return filteredAppointments.filter((a) => {
+      const status = String(a.status || "").toLowerCase();
+      return status === "cancelado" || status === "cancelled";
+    }).length;
+  }, [filteredAppointments]);
+
+  // Próximos agendamentos (todos do período, ordenados por data e horário)
+  const proximosAgendamentos = useMemo(() => {
+    return filteredAppointments
+      .slice()
+      .sort((a, b) => {
+        const dateA = parseLocalDate(a.date);
+        const dateB = parseLocalDate(b.date);
+        const dateTimeA = new Date(
+          dateA.getFullYear(),
+          dateA.getMonth(),
+          dateA.getDate(),
+          ...(a.start_time ? a.start_time.split(':').map(Number) : [0, 0])
+        );
+        const dateTimeB = new Date(
+          dateB.getFullYear(),
+          dateB.getMonth(),
+          dateB.getDate(),
+          ...(b.start_time ? b.start_time.split(':').map(Number) : [0, 0])
+        );
+        return dateTimeA.getTime() - dateTimeB.getTime();
+      })
+      .map((a): {
+        id: string;
+        clientId: string;
+        serviceIds: string[];
+        professionalId: string;
+        date: Date;
+        startTime: string;
+        endTime: string;
+        status: string;
+        totalAmount: number;
+        notes: string;
+      } => ({
+        id: a.id,
+        clientId: a.client_id,
+        serviceIds: a.service_ids || [],
+        professionalId: a.professional_id,
+        date: parseLocalDate(a.date),
+        startTime: a.start_time || "",
+        endTime: a.end_time || "",
+        status: a.status as string,
+        totalAmount: Number(a.total_amount || 0),
+        notes: a.notes || "",
+      }));
+  }, [filteredAppointments]);
+
+  // Desempenho dos profissionais - contar agendamentos concluídos no período
+  const desempenhoProfissionais = useMemo(() => {
+    const performance: Record<string, { count: number; professional: ProfessionalRow }> = {};
+
+    filteredAppointments.forEach((appointment) => {
+      const status = String(appointment.status || "").toLowerCase();
+      const isConcluded = status === "concluido" || status === "completed";
+
+      if (isConcluded && appointment.professional_id) {
+        const prof = professionals.find((p) => p.id === appointment.professional_id);
+        if (!prof) return;
+
+        if (!performance[appointment.professional_id]) {
+          performance[appointment.professional_id] = {
+            count: 0,
+            professional: prof,
+          };
+        }
+
+        performance[appointment.professional_id].count += 1;
+      }
     });
 
-  const topServices = Object.entries(serviceRevenue)
-    .map(([serviceId, revenue]) => {
-      const service = mockServices.find(s => s.id === serviceId);
-      return { service, revenue, count: transactions.filter(t => t.serviceIds?.includes(serviceId)).length };
-    })
-    .filter(item => item.service)
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 5);
+    return Object.values(performance).map((item) => ({
+      name: item.professional.name,
+      value: item.count, // total de atendimentos concluídos
+      color: item.professional.color || "#3b82f6",
+    }));
+  }, [filteredAppointments, professionals]);
 
-  // Dados para gráfico de área - Serviços prestados no mês por dia
-  const monthDays = eachDayOfInterval({ start: thisMonth, end: endOfMonth(today) });
-  const servicesByDay = monthDays.map(day => {
-    const dayServices = appointments.filter(apt => {
-      const aptDate = new Date(apt.date);
-      return isSameDay(aptDate, day) && apt.status === 'completed';
-    }).length;
-    return {
-      date: format(day, 'dd/MM'),
-      services: dayServices,
-    };
-  });
+  // Converter appointments para formato esperado pelo componente
+  const appointmentsForCard = useMemo(() => {
+    return proximosAgendamentos.map((apt) => ({
+      id: apt.id,
+      clientId: apt.clientId,
+      serviceIds: apt.serviceIds,
+      professionalId: apt.professionalId,
+      date: apt.date,
+      startTime: apt.startTime,
+      endTime: apt.endTime,
+      status: apt.status as string,
+      totalAmount: apt.totalAmount,
+      notes: apt.notes,
+    }));
+  }, [proximosAgendamentos]);
 
-  // Dados para gráfico de pizza - Desempenho dos profissionais
-  const professionalPerformance = mockProfissionais.map(prof => {
-    const profAppointments = appointments.filter(apt => 
-      apt.professionalId === prof.id && 
-      new Date(apt.date) >= thisMonth &&
-      apt.status === 'completed'
-    );
-    return {
-      name: prof.nome,
-      value: profAppointments.length,
-      color: prof.cor,
-    };
-  }).filter(item => item.value > 0);
-
-  // Don't render until data is loaded to avoid hydration mismatch
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Visão geral do seu salão</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i} className="bg-white rounded-xl shadow-sm">
-              <CardContent className="p-6">
-                <div className="h-20 animate-pulse bg-muted rounded" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // Converter clients para formato esperado
+  const clientsForCard = useMemo(() => {
+    return clients.map((c) => ({
+      id: c.id,
+      name: c.name,
+      phone: c.phone || "",
+      email: c.email || "",
+      birthdate: c.birthdate ? new Date(c.birthdate) : new Date(),
+      address: c.address || "",
+      cpf: c.cpf || "",
+      registrationDate: new Date(c.created_at),
+      lastVisit: c.last_visit ? new Date(c.last_visit) : null,
+      totalSpent: Number(c.total_spent || 0),
+      totalVisits: Number(c.total_visits || 0),
+      notes: c.notes || "",
+      status: (c.status || "active") as "active" | "inactive",
+    }));
+  }, [clients]);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Visão geral do seu salão</p>
+      {/* Header */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+        <div className="flex items-center gap-3 w-full lg:w-auto">
+          <span className="text-sm text-muted-foreground">{periodDisplay}</span>
+          <Select value={period} onValueChange={(value) => setPeriod(value as PeriodFilter)}>
+            <SelectTrigger className="w-full lg:w-[140px] bg-white">
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="hoje">Hoje</SelectItem>
+              <SelectItem value="ultimos-7-dias">Últimos 7 dias</SelectItem>
+              <SelectItem value="este-mes">Este Mês</SelectItem>
+              <SelectItem value="mes-passado">Mês passado</SelectItem>
+              <SelectItem value="este-ano">Este ano</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <KpiCard 
-          title="Agendamentos Hoje" 
-          value={todayAppointments.toString()} 
-          percentage={appointmentsChange}
-          trend={appointmentsChange >= 0 ? "up" : "down"}
-        />
-        <KpiCard 
-          title="Faturamento Hoje" 
-          value={formatCurrency(todayRevenue)} 
-          percentage={revenueChange}
-          trend={revenueChange >= 0 ? "up" : "down"}
-        />
-        <KpiCard 
-          title="Clientes Novos no Mês" 
-          value={newClientsThisMonth.toString()} 
-        />
-      </div>
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Carregando dados...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 lg:gap-6">
+          {/* Row 1 - 3 Metric Cards + Upcoming Appointments (starts here, spans 2 rows) */}
+          <div className="lg:col-span-3 sm:col-span-2">
+            <MetricCard
+              title="Faturamento"
+              value={formatCurrency(faturamento)}
+              icon={<DollarSign className="w-6 h-6" />}
+              periodDisplay={periodDisplay}
+            />
+          </div>
+          <div className="lg:col-span-3 sm:col-span-2">
+            <MetricCard
+              title="Agendamentos"
+              value={totalAgendamentos.toString()}
+              icon={<Calendar className="w-6 h-6" />}
+              periodDisplay={periodDisplay}
+            />
+          </div>
+          <div className="lg:col-span-3 sm:col-span-2">
+            <MetricCard
+              title="Cancelamentos"
+              value={totalCancelamentos.toString()}
+              icon={<X className="w-6 h-6" />}
+              periodDisplay={periodDisplay}
+            />
+          </div>
+          <div className="lg:col-span-3 lg:row-span-2 sm:col-span-2 self-stretch">
+            <UpcomingAppointmentsCard 
+              appointments={appointmentsForCard} 
+              clients={clientsForCard}
+              periodDisplay={periodDisplay}
+            />
+          </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Area Chart - Serviços Prestados no Mês */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Serviços Prestados no Mês</CardTitle>
-            <CardDescription>
-              Quantidade de serviços realizados por dia
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <ChartContainer
-              config={{
-                services: {
-                  label: "Serviços",
-                  color: "#3b82f6",
-                },
-              }}
-              className="h-[350px] w-full"
-            >
-              <AreaChart data={servicesByDay} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
-                <defs>
-                  <linearGradient id="fillServices" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="#60a5fa"
-                      stopOpacity={0.8}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="#3b82f6"
-                      stopOpacity={0.1}
-                    />
-                  </linearGradient>
-                </defs>
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Area
-                  dataKey="services"
-                  type="natural"
-                  fill="url(#fillServices)"
-                  fillOpacity={0.6}
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  stackId="a"
-                />
-              </AreaChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+          {/* Row 2 - Financial Chart */}
+          <div className="lg:col-span-9 sm:col-span-2">
+            <FinancialChartCard 
+              transactions={filteredTransactions} 
+              period={period}
+              periodDisplay={periodDisplay}
+            />
+          </div>
 
-        {/* Pie Chart - Desempenho dos Profissionais */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Desempenho dos Profissionais</CardTitle>
-            <CardDescription>
-              Serviços concluídos por profissional no mês
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <ChartContainer
-              config={professionalPerformance.reduce((acc, item) => {
-                acc[item.name] = {
-                  label: item.name,
-                  color: item.color,
-                };
-                return acc;
-              }, {} as Record<string, { label: string; color: string }>)}
-              className="h-[350px] w-full"
-            >
-              <PieChart>
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent hideLabel />}
-                />
-                <Pie
-                  data={professionalPerformance}
-                  dataKey="value"
-                  nameKey="name"
-                  strokeWidth={0}
-                >
-                  {professionalPerformance.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tables Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Services */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Top 5 Serviços do Mês</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeaderComponent>
-                <TableRow>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead>Quantidade</TableHead>
-                  <TableHead className="text-right">Receita</TableHead>
-                </TableRow>
-              </TableHeaderComponent>
-              <TableBody>
-                {topServices.map((item) => (
-                  <TableRow key={item.service!.id}>
-                    <TableCell className="font-medium">{item.service!.name}</TableCell>
-                    <TableCell>{item.count}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(item.revenue)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        {/* Recent Transactions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Transações Recentes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentTransactions.map((transaction) => (
-                <div 
-                  key={transaction.id} 
-                  className="flex items-center justify-between p-3 rounded-lg border border-border"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{transaction.description}</p>
-                    <p className="text-xs text-muted-foreground">{formatDate(typeof transaction.date === 'string' ? new Date(transaction.date) : transaction.date)}</p>
-                  </div>
-                  <div className={`font-semibold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                    {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Row 3 - New Clients and Employee Performance */}
+          <div className="lg:col-span-9 sm:col-span-2">
+            <NewClientsCard 
+              clients={filteredClients.map(c => ({
+                id: c.id,
+                name: c.name,
+                phone: c.phone || "",
+                email: c.email || "",
+                birthdate: c.birthdate ? new Date(c.birthdate) : new Date(),
+                address: c.address || "",
+                cpf: c.cpf || "",
+                registrationDate: new Date(c.created_at),
+                lastVisit: c.last_visit ? new Date(c.last_visit) : null,
+                totalSpent: Number(c.total_spent || 0),
+                totalVisits: Number(c.total_visits || 0),
+                notes: c.notes || "",
+                status: (c.status || "active") as "active" | "inactive",
+              }))}
+              periodDisplay={periodDisplay}
+            />
+          </div>
+          <div className="lg:col-span-3 sm:col-span-2">
+            <EmployeePerformanceCard 
+              data={desempenhoProfissionais}
+              periodDisplay={periodDisplay}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
