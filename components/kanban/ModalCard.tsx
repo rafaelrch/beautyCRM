@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { KanbanCard as KanbanCardType } from "@/data/mock-kanban";
+import type { KanbanCard as KanbanCardType } from "@/types/kanban";
 
 interface ModalCardProps {
   open: boolean;

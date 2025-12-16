@@ -1,32 +1,57 @@
+"use client";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { ReactNode } from "react";
 
 interface MetricCardProps {
   title: string;
   value: string;
-  icon: ReactNode;
-  className?: string;
+  icon: React.ReactNode;
   periodDisplay?: string;
+  trend?: {
+    value: number;
+    isPositive: boolean;
+  };
+  className?: string;
 }
 
-export function MetricCard({ title, value, icon, className, periodDisplay }: MetricCardProps) {
+export function MetricCard({
+  title,
+  value,
+  icon,
+  periodDisplay,
+  trend,
+  className,
+}: MetricCardProps) {
   return (
-    <Card className={cn("bg-white rounded-3xl", className)}>
+    <Card className={cn("h-full", className)}>
       <CardContent className="p-6">
-        <div className="flex items-center gap-4">
-          <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#f1f0fb] flex items-center justify-center text-[#3211ff]">
-            {icon}
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-3xl font-bold text-foreground">{value}</p>
+            {trend && (
+              <div className="flex items-center gap-1">
+                <span
+                  className={cn(
+                    "text-sm font-medium",
+                    trend.isPositive ? "text-emerald-600" : "text-red-600"
+                  )}
+                >
+                  {trend.isPositive ? "+" : "-"}
+                  {Math.abs(trend.value)}%
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  vs período anterior
+                </span>
+              </div>
+            )}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-sm text-muted-foreground">{title}</p>
-            </div>
-            <p className="text-2xl font-bold text-foreground">{value}</p>
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            {icon}
           </div>
         </div>
       </CardContent>
     </Card>
   );
 }
-

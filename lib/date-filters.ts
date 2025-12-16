@@ -1,64 +1,67 @@
-import { 
-  startOfDay, 
-  endOfDay, 
-  startOfWeek, 
-  endOfWeek, 
-  startOfMonth, 
-  endOfMonth, 
-  startOfYear, 
-  endOfYear, 
-  subMonths,
+import {
+  startOfDay,
+  endOfDay,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
   subDays,
-  isWithinInterval
+  subMonths,
 } from "date-fns";
 
-export type PeriodFilter = "hoje" | "ultimos-7-dias" | "este-mes" | "mes-passado" | "este-ano";
+export type PeriodFilter =
+  | "hoje"
+  | "ultimos-7-dias"
+  | "este-mes"
+  | "mes-passado"
+  | "este-ano";
 
-export function getPeriodDates(period: PeriodFilter): { start: Date; end: Date } {
-  const now = new Date();
-  
+export interface PeriodDates {
+  start: Date;
+  end: Date;
+}
+
+export function getPeriodDates(period: PeriodFilter): PeriodDates {
+  const today = new Date();
+
   switch (period) {
     case "hoje":
       return {
-        start: startOfDay(now),
-        end: endOfDay(now),
+        start: startOfDay(today),
+        end: endOfDay(today),
       };
-    
+
     case "ultimos-7-dias":
       return {
-        start: startOfDay(subDays(now, 6)), // Últimos 7 dias (incluindo hoje)
-        end: endOfDay(now),
+        start: startOfDay(subDays(today, 6)),
+        end: endOfDay(today),
       };
-    
+
     case "este-mes":
       return {
-        start: startOfMonth(now),
-        end: endOfMonth(now),
+        start: startOfMonth(today),
+        end: endOfMonth(today),
       };
-    
-    case "mes-passado":
-      const lastMonth = subMonths(now, 1);
+
+    case "mes-passado": {
+      const lastMonth = subMonths(today, 1);
       return {
         start: startOfMonth(lastMonth),
         end: endOfMonth(lastMonth),
       };
-    
+    }
+
     case "este-ano":
       return {
-        start: startOfYear(now),
-        end: endOfYear(now),
+        start: startOfYear(today),
+        end: endOfYear(today),
       };
-    
+
     default:
       return {
-        start: startOfDay(now),
-        end: endOfDay(now),
+        start: startOfDay(today),
+        end: endOfDay(today),
       };
   }
-}
-
-export function isDateInPeriod(date: Date, period: PeriodFilter): boolean {
-  const { start, end } = getPeriodDates(period);
-  return isWithinInterval(date, { start, end });
 }
 

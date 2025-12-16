@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import type { KanbanColumn as KanbanColumnType } from "@/data/mock-kanban";
+import type { KanbanColumn as KanbanColumnType } from "@/types/kanban";
 
 interface ModalColumnProps {
   open: boolean;

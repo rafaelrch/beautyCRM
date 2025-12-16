@@ -98,9 +98,6 @@ export function DatePicker({
           onSelect={handleSelect}
           disabled={minDate ? (date) => date < minDate : undefined}
           initialFocus
-          captionLayout="dropdown"
-          fromYear={1900}
-          toYear={new Date().getFullYear()}
         />
       </PopoverContent>
     </Popover>

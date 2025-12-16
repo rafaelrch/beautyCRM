@@ -60,6 +60,7 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/servicos") ||
     request.nextUrl.pathname.startsWith("/financeiro") ||
     request.nextUrl.pathname.startsWith("/estoque") ||
+    request.nextUrl.pathname.startsWith("/relatorios") ||
     request.nextUrl.pathname.startsWith("/configuracoes");
 
   // Rotas públicas (login e cadastro)

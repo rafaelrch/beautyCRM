@@ -8,8 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { getColumnColor } from "@/data/mock-kanban";
-import type { KanbanCard as KanbanCardType } from "@/data/mock-kanban";
+import { getColumnColor, type KanbanCard as KanbanCardType } from "@/types/kanban";
 
 interface ModalCardDetailsProps {
   open: boolean;

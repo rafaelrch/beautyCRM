@@ -65,16 +65,7 @@ export interface Appointment {
   date: Date;
   startTime: string;
   endTime: string;
-  status:
-    | 'agendado'
-    | 'confirmado'
-    | 'concluido'
-    | 'cancelado'
-    | 'nao_compareceu'
-    | 'scheduled'
-    | 'completed'
-    | 'cancelled'
-    | 'no-show';
+  status: 'scheduled' | 'completed' | 'cancelled' | 'no-show';
   totalAmount: number;
   notes: string;
 }

@@ -28,7 +28,6 @@ export default function ClientsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [birthdate, setBirthdate] = useState<Date | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -64,21 +63,17 @@ export default function ClientsPage() {
 
       appointmentsData.forEach((appointment: AppointmentRow) => {
         // Só considerar agendamentos concluídos
-        const status = String(appointment.status || "").toLowerCase();
-        if ((status === "concluido" || status === "completed") && appointment.client_id) {
+        if (appointment.status === "completed" && appointment.client_id) {
           const clientId = appointment.client_id;
           
           // Converter data do agendamento para Date
           let appointmentDate: Date;
-          if (typeof appointment.date === "string") {
-            if (appointment.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-              const [year, month, day] = appointment.date.split("-").map(Number);
-              appointmentDate = new Date(year, month - 1, day);
-            } else {
-              appointmentDate = new Date(appointment.date);
-            }
+          const dateStr = appointment.date;
+          if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            appointmentDate = new Date(year, month - 1, day);
           } else {
-            appointmentDate = new Date(appointment.date as any);
+            appointmentDate = new Date(dateStr);
           }
 
           // Atualizar última visita se for mais recente
@@ -191,21 +186,13 @@ export default function ClientsPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setEditingClient(null);
-    setBirthdate(undefined);
-  };
-
   const handleAddClient = () => {
     setEditingClient(null);
-    setBirthdate(undefined);
     setIsDialogOpen(true);
   };
 
   const handleEditClient = (client: Client) => {
     setEditingClient(client);
-    setBirthdate(client.birthdate ? new Date(client.birthdate) : undefined);
     setIsDialogOpen(true);
   };
 
@@ -267,7 +254,8 @@ export default function ClientsPage() {
         });
       }
 
-      handleCloseDialog();
+      setIsDialogOpen(false);
+      setEditingClient(null);
       loadClients();
     } catch (error: any) {
       toast({
@@ -283,8 +271,8 @@ export default function ClientsPage() {
       <Header title="Clientes" actionLabel="Adicionar Cliente" onAction={handleAddClient} />
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-white rounded-xl border border-border p-4">
-        <div className="relative w-full sm:flex-1">
+      <div className="flex items-center gap-4 bg-white rounded-xl border border-border p-4">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
@@ -295,7 +283,7 @@ export default function ClientsPage() {
           />
         </div>
         <Select value={statusFilter} onValueChange={(value: any) => setStatusFilter(value)}>
-          <SelectTrigger className="w-full sm:w-40">
+          <SelectTrigger className="w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -304,22 +292,19 @@ export default function ClientsPage() {
             <SelectItem value="inactive">Inativos</SelectItem>
           </SelectContent>
         </Select>
-        <div className="flex sm:flex-none justify-end sm:justify-start">
         <Button variant="outline" size="icon">
           <Filter className="h-4 w-4" />
         </Button>
-        </div>
       </div>
 
       {/* Clients Table */}
-      <div className="bg-white rounded-xl border border-border p-4 sm:p-6">
+      <div className="bg-white rounded-xl border border-border p-6">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table className="min-w-[720px]">
+          <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
@@ -392,18 +377,11 @@ export default function ClientsPage() {
             )}
             </TableBody>
           </Table>
-          </div>
         )}
       </div>
 
       {/* Client Form Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={(open) => {
-        if (!open) {
-          handleCloseDialog();
-        } else {
-          setIsDialogOpen(true);
-        }
-      }}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -411,7 +389,7 @@ export default function ClientsPage() {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSaveClient} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="name" className="mb-[3px]">Nome *</Label>
                 <Input id="name" name="name" required defaultValue={editingClient?.name} />
@@ -432,13 +410,15 @@ export default function ClientsPage() {
                 <Label htmlFor="birthdate" className="mb-[3px]">Data de Nascimento</Label>
                 <DatePicker
                   id="birthdate"
-                  value={birthdate}
-                  onChange={(dateString) => {
-                    const newDate = dateString ? new Date(dateString) : undefined;
-                    setBirthdate(newDate);
+                  value={
+                    editingClient?.birthdate
+                      ? new Date(editingClient.birthdate)
+                      : undefined
+                  }
+                  onChange={(date) => {
                     const hiddenInput = document.getElementById("birthdate-hidden") as HTMLInputElement;
                     if (hiddenInput) {
-                      hiddenInput.value = dateString || "";
+                      hiddenInput.value = date;
                     }
                   }}
                   placeholder="Selecione a data de nascimento"
@@ -448,8 +428,8 @@ export default function ClientsPage() {
                   id="birthdate-hidden"
                   name="birthdate"
                   value={
-                    birthdate
-                      ? birthdate.toISOString().split("T")[0]
+                    editingClient?.birthdate
+                      ? new Date(editingClient.birthdate).toISOString().split("T")[0]
                       : ""
                   }
                 />
@@ -483,11 +463,11 @@ export default function ClientsPage() {
                 />
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row sm:justify-end gap-2 pt-4">
+            <div className="flex justify-end gap-2 pt-4">
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleCloseDialog}
+                onClick={() => setIsDialogOpen(false)}
               >
                 Cancelar
               </Button>

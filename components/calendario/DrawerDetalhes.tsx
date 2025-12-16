@@ -17,17 +17,6 @@ import {
   DrawerDescription,
   DrawerFooter,
 } from "@/components/ui/drawer";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { formatDate, formatPhone, formatDuration } from "@/lib/formatters";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -97,7 +86,6 @@ interface DrawerDetalhesProps {
   }) => void;
   onCancel?: () => void;
   onComplete?: () => void;
-  onDelete?: () => void;
 }
 
 const statusConfig = {
@@ -174,7 +162,6 @@ export function DrawerDetalhes({
   onSave,
   onCancel,
   onComplete,
-  onDelete,
 }: DrawerDetalhesProps) {
   const [statusEditado, setStatusEditado] = useState<string>("");
   const [observacaoEditada, setObservacaoEditada] = useState<string>("");
@@ -276,6 +263,12 @@ export function DrawerDetalhes({
 
   const servicoSelecionado = servicos.find((s) => s.id === servicoEditado);
   const profissionalSelecionado = profissionais.find((p) => p.id === profissionalEditado);
+
+  const handleCancel = () => {
+    if (confirm("Tem certeza que deseja cancelar este agendamento?")) {
+      onCancel?.();
+    }
+  };
 
   const getIniciais = (nome: string) => {
     return nome
@@ -547,36 +540,14 @@ export function DrawerDetalhes({
                 <Edit className="h-4 w-4 mr-2" />
                 Salvar alterações
               </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="outline"
-                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Deletar Agendamento
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Deletar agendamento</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Tem certeza que deseja excluir este agendamento? Essa ação não pode ser desfeita.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction
-                      className="bg-red-600 hover:bg-red-700 text-white"
-                      onClick={() => {
-                        onDelete?.();
-                      }}
-                    >
-                      Confirmar exclusão
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button 
+                variant="outline"
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                onClick={handleCancel}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Cancelar Agendamento
+              </Button>
             </div>
           </DrawerFooter>
         </div>

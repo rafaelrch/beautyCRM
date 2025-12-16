@@ -1,6 +1,15 @@
 import { supabase } from "./supabase";
 import type { Database } from "@/types/database";
 
+// Tipos derivados do Database
+type ClientRow = Database["public"]["Tables"]["clients"]["Row"];
+type ProfessionalRow = Database["public"]["Tables"]["professionals"]["Row"];
+type ServiceRow = Database["public"]["Tables"]["services"]["Row"];
+type ProductRow = Database["public"]["Tables"]["products"]["Row"];
+type AppointmentRow = Database["public"]["Tables"]["appointments"]["Row"];
+type TransactionRow = Database["public"]["Tables"]["transactions"]["Row"];
+type StockMovementRow = Database["public"]["Tables"]["stock_movements"]["Row"];
+
 // Helper para obter o user_id do usuário autenticado
 export async function getCurrentUserId(): Promise<string | null> {
   const {
@@ -9,45 +18,30 @@ export async function getCurrentUserId(): Promise<string | null> {
   return user?.id || null;
 }
 
-// Helper para obter dados do usuário autenticado
-export async function getCurrentUserProfile() {
-  const userId = await getCurrentUserId();
-  if (!userId) throw new Error("Usuário não autenticado");
-
-  const { data, error } = await supabase
-    .from("users")
-    .select("id, full_name, salon_name, cnpj, phone, email, address")
-    .eq("id", userId)
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
 // ============================================================================
 // CLIENTES
 // ============================================================================
 
-export async function getClients() {
+export async function getClients(): Promise<ClientRow[]> {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("clients")
+  const { data, error } = await (supabase
+    .from("clients") as any)
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data as ClientRow[]) || [];
 }
 
 export async function createClient(client: Omit<Database["public"]["Tables"]["clients"]["Insert"], "user_id">) {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("clients")
+  const { data, error } = await (supabase
+    .from("clients") as any)
     .insert({ ...client, user_id: userId })
     .select()
     .single();
@@ -63,8 +57,8 @@ export async function updateClient(
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("clients")
+  const { data, error } = await (supabase
+    .from("clients") as any)
     .update(updates)
     .eq("id", id)
     .eq("user_id", userId)
@@ -79,8 +73,8 @@ export async function deleteClient(id: string) {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { error } = await supabase
-    .from("clients")
+  const { error } = await (supabase
+    .from("clients") as any)
     .delete()
     .eq("id", id)
     .eq("user_id", userId);
@@ -93,18 +87,18 @@ export async function deleteClient(id: string) {
 // PROFISSIONAIS
 // ============================================================================
 
-export async function getProfessionals() {
+export async function getProfessionals(): Promise<ProfessionalRow[]> {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("professionals")
+  const { data, error } = await (supabase
+    .from("professionals") as any)
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data as ProfessionalRow[]) || [];
 }
 
 export async function createProfessional(
@@ -113,8 +107,8 @@ export async function createProfessional(
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("professionals")
+  const { data, error } = await (supabase
+    .from("professionals") as any)
     .insert({ ...professional, user_id: userId })
     .select()
     .single();
@@ -130,8 +124,8 @@ export async function updateProfessional(
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("professionals")
+  const { data, error } = await (supabase
+    .from("professionals") as any)
     .update(updates)
     .eq("id", id)
     .eq("user_id", userId)
@@ -146,8 +140,8 @@ export async function deleteProfessional(id: string) {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { error } = await supabase
-    .from("professionals")
+  const { error } = await (supabase
+    .from("professionals") as any)
     .delete()
     .eq("id", id)
     .eq("user_id", userId);
@@ -160,18 +154,18 @@ export async function deleteProfessional(id: string) {
 // SERVIÇOS
 // ============================================================================
 
-export async function getServices() {
+export async function getServices(): Promise<ServiceRow[]> {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("services")
+  const { data, error } = await (supabase
+    .from("services") as any)
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data as ServiceRow[]) || [];
 }
 
 export async function createService(
@@ -180,8 +174,8 @@ export async function createService(
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("services")
+  const { data, error } = await (supabase
+    .from("services") as any)
     .insert({ ...service, user_id: userId })
     .select()
     .single();
@@ -197,8 +191,8 @@ export async function updateService(
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("services")
+  const { data, error } = await (supabase
+    .from("services") as any)
     .update(updates)
     .eq("id", id)
     .eq("user_id", userId)
@@ -213,8 +207,8 @@ export async function deleteService(id: string) {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { error } = await supabase
-    .from("services")
+  const { error } = await (supabase
+    .from("services") as any)
     .delete()
     .eq("id", id)
     .eq("user_id", userId);
@@ -227,18 +221,18 @@ export async function deleteService(id: string) {
 // PRODUTOS (ESTOQUE)
 // ============================================================================
 
-export async function getProducts() {
+export async function getProducts(): Promise<ProductRow[]> {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("products")
+  const { data, error } = await (supabase
+    .from("products") as any)
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data as ProductRow[]) || [];
 }
 
 export async function createProduct(
@@ -247,8 +241,8 @@ export async function createProduct(
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("products")
+  const { data, error } = await (supabase
+    .from("products") as any)
     .insert({ ...product, user_id: userId })
     .select()
     .single();
@@ -264,8 +258,8 @@ export async function updateProduct(
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("products")
+  const { data, error } = await (supabase
+    .from("products") as any)
     .update(updates)
     .eq("id", id)
     .eq("user_id", userId)
@@ -280,8 +274,8 @@ export async function deleteProduct(id: string) {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { error } = await supabase
-    .from("products")
+  const { error } = await (supabase
+    .from("products") as any)
     .delete()
     .eq("id", id)
     .eq("user_id", userId);
@@ -294,19 +288,19 @@ export async function deleteProduct(id: string) {
 // AGENDAMENTOS
 // ============================================================================
 
-export async function getAppointments() {
+export async function getAppointments(): Promise<AppointmentRow[]> {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("appointments")
+  const { data, error } = await (supabase
+    .from("appointments") as any)
     .select("*")
     .eq("user_id", userId)
     .order("date", { ascending: true })
     .order("start_time", { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  return (data as AppointmentRow[]) || [];
 }
 
 export async function createAppointment(
@@ -315,8 +309,8 @@ export async function createAppointment(
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("appointments")
+  const { data, error } = await (supabase
+    .from("appointments") as any)
     .insert({ ...appointment, user_id: userId })
     .select()
     .single();
@@ -332,8 +326,8 @@ export async function updateAppointment(
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("appointments")
+  const { data, error } = await (supabase
+    .from("appointments") as any)
     .update(updates)
     .eq("id", id)
     .eq("user_id", userId)
@@ -348,8 +342,8 @@ export async function deleteAppointment(id: string) {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { error } = await supabase
-    .from("appointments")
+  const { error } = await (supabase
+    .from("appointments") as any)
     .delete()
     .eq("id", id)
     .eq("user_id", userId);
@@ -362,18 +356,18 @@ export async function deleteAppointment(id: string) {
 // TRANSAÇÕES (FINANCEIRO)
 // ============================================================================
 
-export async function getTransactions() {
+export async function getTransactions(): Promise<TransactionRow[]> {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("transactions")
+  const { data, error } = await (supabase
+    .from("transactions") as any)
     .select("*")
     .eq("user_id", userId)
     .order("date", { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data as TransactionRow[]) || [];
 }
 
 export async function createTransaction(
@@ -382,16 +376,9 @@ export async function createTransaction(
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  // Garantir que description seja sempre uma string (não null ou undefined)
-  const transactionData = {
-    ...transaction,
-    description: transaction.description || "",
-    user_id: userId,
-  };
-
-  const { data, error } = await supabase
-    .from("transactions")
-    .insert(transactionData)
+  const { data, error } = await (supabase
+    .from("transactions") as any)
+    .insert({ ...transaction, user_id: userId })
     .select()
     .single();
 
@@ -406,15 +393,9 @@ export async function updateTransaction(
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  // Garantir que description seja sempre uma string se estiver presente
-  const updateData = {
-    ...updates,
-    ...(updates.description !== undefined && { description: updates.description || "" }),
-  };
-
-  const { data, error } = await supabase
-    .from("transactions")
-    .update(updateData)
+  const { data, error } = await (supabase
+    .from("transactions") as any)
+    .update(updates)
     .eq("id", id)
     .eq("user_id", userId)
     .select()
@@ -428,8 +409,8 @@ export async function deleteTransaction(id: string) {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { error } = await supabase
-    .from("transactions")
+  const { error } = await (supabase
+    .from("transactions") as any)
     .delete()
     .eq("id", id)
     .eq("user_id", userId);
@@ -442,18 +423,18 @@ export async function deleteTransaction(id: string) {
 // MOVIMENTAÇÕES DE ESTOQUE
 // ============================================================================
 
-export async function getStockMovements() {
+export async function getStockMovements(): Promise<StockMovementRow[]> {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("stock_movements")
+  const { data, error } = await (supabase
+    .from("stock_movements") as any)
     .select("*")
     .eq("user_id", userId)
     .order("date", { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data as StockMovementRow[]) || [];
 }
 
 export async function createStockMovement(
@@ -462,8 +443,8 @@ export async function createStockMovement(
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Usuário não autenticado");
 
-  const { data, error } = await supabase
-    .from("stock_movements")
+  const { data, error } = await (supabase
+    .from("stock_movements") as any)
     .insert({ ...movement, user_id: userId })
     .select()
     .single();
@@ -471,8 +452,3 @@ export async function createStockMovement(
   if (error) throw error;
   return data;
 }
-
-
-
-
-

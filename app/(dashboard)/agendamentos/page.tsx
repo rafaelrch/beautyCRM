@@ -15,7 +15,7 @@ import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { formatMonthYear } from "@/lib/dateHelpers";
-import { mockKanbanColumns, type KanbanCard as KanbanCardType, type KanbanColumn as KanbanColumnType } from "@/data/mock-kanban";
+import { defaultKanbanColumns, type KanbanCard as KanbanCardType, type KanbanColumn as KanbanColumnType } from "@/types/kanban";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth, isSameDay, startOfWeek, endOfWeek, addWeeks, addDays, isWithinInterval } from "date-fns";
 import { getAppointments, createAppointment, updateAppointment, deleteAppointment, getClients, getServices, getProfessionals } from "@/lib/supabase-helpers";
 import { useToast } from "@/hooks/use-toast";
@@ -64,7 +64,7 @@ export default function AgendamentosPage() {
   const [filtroStatus, setFiltroStatus] = useState<string>("all");
   const [buscaCliente, setBuscaCliente] = useState("");
   const [viewMode, setViewMode] = useState<"calendar" | "kanban">("calendar");
-  const [kanbanColumns, setKanbanColumns] = useState<KanbanColumnType[]>(mockKanbanColumns);
+  const [kanbanColumns, setKanbanColumns] = useState<KanbanColumnType[]>(defaultKanbanColumns);
   const [kanbanMesAtual, setKanbanMesAtual] = useState(new Date());
   const [kanbanFiltroData, setKanbanFiltroData] = useState<"hoje" | "esta-semana" | "proxima-semana" | "mes-inteiro">("hoje");
   const [kanbanCardsOptimistic, setKanbanCardsOptimistic] = useState<KanbanCardType[] | null>(null);
@@ -110,7 +110,7 @@ export default function AgendamentosPage() {
           date: appointmentDate,
           startTime: apt.start_time,
           endTime: apt.end_time,
-          status: (apt.status as 'agendado' | 'confirmado' | 'concluido' | 'cancelado' | 'nao_compareceu') || 'agendado',
+          status: apt.status || 'scheduled',
           totalAmount: totalAmount,
           notes: apt.notes || "",
         } as Appointment;
@@ -264,7 +264,7 @@ export default function AgendamentosPage() {
   // Mapeamos para as colunas do Kanban: Pendiente, Confirmado, Concluido, Não Compareceu, Cancelado
   const mapStatusToColumn = (status: string, columnId?: string): string => {
     // Se já tem columnId e é válido, manter
-    if (columnId && mockKanbanColumns.find(col => col.id === columnId)) {
+    if (columnId && defaultKanbanColumns.find(col => col.id === columnId)) {
       return columnId;
     }
     
@@ -287,7 +287,7 @@ export default function AgendamentosPage() {
       // Tentar extrair columnId das notes se existir (formato: "kanbanColumnId:em-contato")
       if (appointment?.notes) {
         const columnMatch = appointment.notes.match(/kanbanColumnId:([a-z-]+)/);
-        if (columnMatch && mockKanbanColumns.find(col => col.id === columnMatch[1])) {
+        if (columnMatch && defaultKanbanColumns.find(col => col.id === columnMatch[1])) {
           columnId = columnMatch[1];
         }
       }
@@ -645,28 +645,6 @@ export default function AgendamentosPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!agendamentoSelecionado) return;
-    try {
-      await deleteAppointment(agendamentoSelecionado.id);
-
-      toast({
-        title: "Sucesso",
-        description: "Agendamento excluído com sucesso!",
-      });
-
-      await loadData();
-      setIsDrawerOpen(false);
-      setAgendamentoSelecionado(null);
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message || "Erro ao excluir agendamento",
-        variant: "destructive",
-      });
-    }
-  };
-
   const agendamentosExistentes = agendamentosFormatados.map((apt) => ({
     profissionalId: apt.profissionalId,
     data: format(apt.data, "yyyy-MM-dd"),
@@ -897,25 +875,15 @@ export default function AgendamentosPage() {
         title="Agendamentos"
         actionLabel="Criar Agendamento"
         onAction={() => handleCriarAgendamento()}
-        showFilter={false}
+        onFilter={() => setIsFilterDialogOpen(true)}
+        showFilter={true}
       />
 
       {/* Tabs para alternar entre visualizações */}
-
       <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "calendar" | "kanban")} className="w-full overflow-x-hidden max-w-full">
-        <TabsList className="">
-          <TabsTrigger
-            value="calendar"
-            className=" px-4 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-white data-[state=active]:text-foreground"
-          >
-            Calendário
-          </TabsTrigger>
-          <TabsTrigger
-            value="kanban"
-            className=" px-4 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-white data-[state=active]:text-foreground"
-          >
-            Kanban
-          </TabsTrigger>
+        <TabsList className="bg-white">
+          <TabsTrigger value="calendar">Calendário</TabsTrigger>
+          <TabsTrigger value="kanban">Kanban</TabsTrigger>
         </TabsList>
 
         <TabsContent value="calendar" className="mt-6">
@@ -1095,8 +1063,8 @@ export default function AgendamentosPage() {
           servicos={servicosFormatados}
           profissionais={profissionaisFormatados}
           onSave={handleSaveDrawer}
+          onCancel={handleCancelar}
           onComplete={handleConcluir}
-          onDelete={handleDelete}
         />
       )}
 

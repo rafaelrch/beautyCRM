@@ -1,10 +1,14 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Clock, CheckCircle2, Sun, X, HelpCircle } from "lucide-react";
-import { UserIcon, TagIcon } from "@heroicons/react/24/outline";
-import type { Client } from "@/types";
+"use client";
 
-interface AppointmentForCard {
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Calendar, Clock } from "lucide-react";
+
+interface Appointment {
   id: string;
   clientId: string;
   serviceIds: string[];
@@ -17,115 +21,125 @@ interface AppointmentForCard {
   notes: string;
 }
 
+interface Client {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  birthdate: Date;
+  address: string;
+  cpf: string;
+  registrationDate: Date;
+  lastVisit: Date | null;
+  totalSpent: number;
+  totalVisits: number;
+  notes: string;
+  status: "active" | "inactive";
+}
+
 interface UpcomingAppointmentsCardProps {
-  appointments?: AppointmentForCard[];
-  clients?: Client[];
+  appointments: Appointment[];
+  clients: Client[];
   periodDisplay?: string;
 }
 
-// Formata horário no padrão hh:mm, mesmo que venha como hh:mm:ss
-const formatTimeHHMM = (time: string) => {
-  if (!time) return "--:--";
-  const parts = time.split(":");
-  if (parts.length >= 2) {
-    return `${parts[0].padStart(2, "0")}:${parts[1].padStart(2, "0")}`;
+function getStatusBadge(status: string) {
+  const statusLower = status.toLowerCase();
+  
+  switch (statusLower) {
+    case "scheduled":
+    case "agendado":
+      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Agendado</Badge>;
+    case "completed":
+    case "concluido":
+      return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">Concluído</Badge>;
+    case "cancelled":
+    case "cancelado":
+      return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Cancelado</Badge>;
+    case "no-show":
+    case "nao-compareceu":
+      return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Não compareceu</Badge>;
+    default:
+      return <Badge variant="outline">{status}</Badge>;
   }
-  return time;
-};
+}
 
-export function UpcomingAppointmentsCard({ appointments = [], clients = [], periodDisplay }: UpcomingAppointmentsCardProps) {
-  const appointmentsWithClientInfo = appointments.map((appointment) => {
-    const client = clients.find((c) => c.id === appointment.clientId);
-    const time = formatTimeHHMM(appointment.startTime || "");
-    
-    // Determinar o status para exibição
-    const status = String(appointment.status || "").toLowerCase();
-    let statusLabel = "Pendente";
-    let badgeStyle = "bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-0";
-    let icon = <Sun className="w-3 h-3 mr-1" />;
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
-    if (status === "concluido" || status === "completed" || status === "confirmado") {
-      statusLabel = "Concluído";
-      badgeStyle = "bg-blue-100 text-blue-700 hover:bg-blue-100 border-0";
-      icon = <CheckCircle2 className="w-3 h-3 mr-1" />;
-    } else if (status === "cancelado" || status === "cancelled") {
-      statusLabel = "Cancelado";
-      badgeStyle = "bg-red-100 text-red-700 hover:bg-red-100 border-0";
-      icon = <X className="w-3 h-3 mr-1" />;
-    } else if (status === "agendado" || status === "scheduled") {
-      statusLabel = "Agendado";
-      badgeStyle = "bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-0";
-      icon = <TagIcon className="w-3 h-3 mr-1" />;
-    } else if (status === "nao_compareceu" || status === "no-show") {
-      statusLabel = "Não compareceu";
-      badgeStyle = "bg-orange-100 text-orange-700 hover:bg-orange-100 border-0";
-      icon = <HelpCircle className="w-3 h-3 mr-1" />;
-    }
-    
-    return {
-      id: appointment.id,
-      clientName: client?.name || "Cliente não encontrado",
-      phone: client?.phone || "",
-      time: time,
-      status,
-      statusLabel,
-      badgeStyle,
-      icon,
-    };
-  });
+export function UpcomingAppointmentsCard({
+  appointments,
+  clients,
+  periodDisplay,
+}: UpcomingAppointmentsCardProps) {
+  const getClientName = (clientId: string): string => {
+    const client = clients.find((c) => c.id === clientId);
+    return client?.name || "Cliente não encontrado";
+  };
+
+  // Mostrar apenas os próximos 8 agendamentos
+  const displayAppointments = appointments.slice(0, 8);
+
   return (
-    <Card className="bg-white rounded-xl shadow-sm h-full flex flex-col">
-      <CardHeader>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">Próximos agendamentos</CardTitle>
+          <CardTitle className="text-lg font-semibold">
+            Próximos Agendamentos
+          </CardTitle>
+          <Badge variant="secondary" className="font-normal">
+            {appointments.length} total
+          </Badge>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col max-h-[620px]">
-        <div
-          className="space-y-3 flex-1 overflow-y-auto pr-1
-            [&::-webkit-scrollbar]:w-2
-            [&::-webkit-scrollbar-thumb]:rounded-full
-            [&::-webkit-scrollbar-thumb]:bg-gray-300
-            [&::-webkit-scrollbar-track]:bg-transparent
-            [scrollbar-width:thin]
-            [scrollbar-color:#d1d5db_transparent]"
-        >
-          {appointmentsWithClientInfo.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">Nenhum agendamento próximo</p>
-          ) : (
-            appointmentsWithClientInfo.map((appointment) => (
-            <div
-              key={appointment.id}
-              className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
-            >
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#f1f0fb] flex items-center justify-center text-[#3211ff]">
-                <UserIcon className="w-5 h-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm text-foreground">{appointment.clientName}</p>
-                <p className="text-xs text-muted-foreground">{appointment.phone}</p>
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Clock className="w-4 h-4" />
-                  <span>{appointment.time}</span>
-                </div>
-                <Badge
-                  variant="secondary"
-                  className={appointment.badgeStyle}
-                >
-                  <>
-                    {appointment.icon}
-                    {appointment.statusLabel}
-                  </>
-                </Badge>
-              </div>
+      <CardContent className="flex-1 overflow-hidden">
+        {displayAppointments.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center py-8">
+            <Calendar className="h-12 w-12 text-muted-foreground/50 mb-3" />
+            <p className="text-sm text-muted-foreground">
+              Nenhum agendamento para o período
+            </p>
+          </div>
+        ) : (
+          <ScrollArea className="h-[340px] pr-4">
+            <div className="space-y-3">
+              {displayAppointments.map((appointment) => {
+                const clientName = getClientName(appointment.clientId);
+                return (
+                  <div
+                    key={appointment.id}
+                    className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                  >
+                    <Avatar className="h-10 w-10 shrink-0">
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                        {getInitials(clientName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{clientName}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        <span>
+                          {format(appointment.date, "dd/MM", { locale: ptBR })}
+                        </span>
+                        <Clock className="h-3 w-3 ml-1" />
+                        <span>{appointment.startTime}</span>
+                      </div>
+                    </div>
+                    {getStatusBadge(appointment.status)}
+                  </div>
+                );
+              })}
             </div>
-            ))
-          )}
-        </div>
+          </ScrollArea>
+        )}
       </CardContent>
     </Card>
   );
 }
-

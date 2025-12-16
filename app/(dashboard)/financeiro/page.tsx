@@ -243,12 +243,6 @@ export default function FinancialPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    // Mostrar notificação de que está registrando
-    toast({
-      title: "Registrando transação...",
-      description: "Aguarde enquanto a transação está sendo processada.",
-    });
-
     try {
       const dateValue = formData.get("date") as string;
       const type = transactionType;
@@ -364,12 +358,13 @@ export default function FinancialPage() {
         // Sobrescrever o amount do form com o valor calculado
         formData.set("amount", totalValue.toFixed(2));
         
-        // Aumentar quantidade do estoque (campo quantity existente)
+        // Aumentar quantidade do estoque
         const currentQuantity = Number(selectedProduct.quantity);
         const newQuantity = currentQuantity + quantityValue;
         
         await updateProduct(selectedProductId, {
           quantity: newQuantity,
+          last_purchase: dateValue,
         });
         
         // Criar movimento de estoque (entrada)
@@ -404,13 +399,11 @@ export default function FinancialPage() {
         throw new Error("Por favor, informe um valor válido");
       }
 
-      const descriptionValue = (formData.get("description") as string) || "";
-
       const transaction = await createTransaction({
         date: dateValue,
         type: type,
         category: category,
-        description: descriptionValue,
+        description: formData.get("description") as string,
         amount: amount,
         payment_method: formData.get("paymentMethod") as "cash" | "credit" | "debit" | "pix",
         status: "completed",
@@ -472,7 +465,7 @@ export default function FinancialPage() {
       />
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
@@ -722,13 +715,13 @@ export default function FinancialPage() {
       </Dialog>
 
       {/* Transactions Table */}
-      <div className="bg-white rounded-xl border border-border p-4 sm:p-6 overflow-x-auto">
+      <div className="bg-white rounded-xl border border-border p-6">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <Table className="min-w-[920px]">
+          <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Data</TableHead>
@@ -977,11 +970,6 @@ export default function FinancialPage() {
                     value={selectedClientId || undefined}
                     onValueChange={(value) => {
                       setSelectedClientId(value);
-                      // Atualizar campo hidden para o formulário
-                      const hiddenInput = document.getElementById("client-id-hidden") as HTMLInputElement;
-                      if (hiddenInput) {
-                        hiddenInput.value = value;
-                      }
                     }}
                     required
                   >
@@ -1002,12 +990,6 @@ export default function FinancialPage() {
                       )}
                     </SelectContent>
                   </Select>
-                  <input
-                    type="hidden"
-                    id="client-id-hidden"
-                    name="clientId"
-                    value={selectedClientId}
-                  />
                 </div>
 
                 <div>
@@ -1072,17 +1054,6 @@ export default function FinancialPage() {
                       <SelectItem value="pix">PIX</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="col-span-2">
-                  <Label htmlFor="description-client" className="mb-[3px]">Descrição</Label>
-                  <Textarea 
-                    id="description-client" 
-                    name="description" 
-                    placeholder="Descrição opcional do serviço prestado"
-                    rows={3}
-                    className="resize-none"
-                  />
                 </div>
               </>
             )}
@@ -1601,13 +1572,11 @@ export default function FinancialPage() {
                       }
                     }
 
-                    const descriptionValueUpdate = (formData.get("description") as string) || "";
-
                     const updatedTransaction = await updateTransaction(editingTransaction.id, {
                       date: dateValue,
                       type: type,
                       category: category,
-                      description: descriptionValueUpdate,
+                      description: formData.get("description") as string,
                       amount: parseFloat(formData.get("amount") as string),
                       payment_method: formData.get("paymentMethod") as "cash" | "credit" | "debit" | "pix",
                       client_id: selectedClientId || null,

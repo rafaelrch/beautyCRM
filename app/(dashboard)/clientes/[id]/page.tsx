@@ -73,19 +73,14 @@ export default function ClientDetailsPage() {
       const clientAppointments: Appointment[] = appointmentsData
         .filter((apt: AppointmentRow) => apt.client_id === foundClient.id)
         .map((apt: AppointmentRow) => {
-          // Converter data
+          // Converter data (sempre string do banco)
           let appointmentDate: Date;
-          if (apt.date instanceof Date) {
-            appointmentDate = apt.date;
-          } else if (typeof apt.date === 'string') {
-            if (apt.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-              const [year, month, day] = apt.date.split('-').map(Number);
-              appointmentDate = new Date(year, month - 1, day);
-            } else {
-              appointmentDate = new Date(apt.date);
-            }
+          const dateValue = apt.date as string;
+          if (dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = dateValue.split('-').map(Number);
+            appointmentDate = new Date(year, month - 1, day);
           } else {
-            appointmentDate = new Date(apt.date);
+            appointmentDate = new Date(dateValue);
           }
 
           // Calcular totalAmount dos serviços
@@ -102,7 +97,7 @@ export default function ClientDetailsPage() {
             date: appointmentDate,
             startTime: apt.start_time,
             endTime: apt.end_time,
-            status: (apt.status as 'agendado' | 'confirmado' | 'concluido' | 'cancelado' | 'nao_compareceu') || 'agendado',
+            status: apt.status || 'scheduled',
             totalAmount: totalAmount,
             notes: apt.notes || "",
           } as Appointment;
@@ -138,7 +133,7 @@ export default function ClientDetailsPage() {
   }
 
   const completedAppointments = appointments.filter(
-    (apt) => apt.status === "concluido"
+    (apt) => apt.status === "completed"
   );
   const averageTicket =
     completedAppointments.length > 0
@@ -329,25 +324,21 @@ export default function ClientDetailsPage() {
                         <Badge
                           variant="outline"
                           className={
-                            appointment.status === "concluido"
+                            appointment.status === "completed"
                               ? "bg-green-100 text-green-700 border-green-200"
-                              : appointment.status === "cancelado"
+                              : appointment.status === "cancelled"
                               ? "bg-red-100 text-red-700 border-red-200"
-                              : appointment.status === "nao_compareceu"
+                              : appointment.status === "no-show"
                               ? "bg-orange-100 text-orange-700 border-orange-200"
-                              : appointment.status === "confirmado"
-                              ? "bg-blue-100 text-blue-700 border-blue-200"
                               : "bg-yellow-100 text-yellow-700 border-yellow-200"
                           }
                         >
-                          {appointment.status === "concluido"
+                          {appointment.status === "completed"
                             ? "Concluído"
-                            : appointment.status === "cancelado"
+                            : appointment.status === "cancelled"
                             ? "Cancelado"
-                            : appointment.status === "nao_compareceu"
+                            : appointment.status === "no-show"
                             ? "Não Compareceu"
-                            : appointment.status === "confirmado"
-                            ? "Confirmado"
                             : "Agendado"}
                         </Badge>
                       </TableCell>

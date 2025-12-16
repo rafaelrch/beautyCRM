@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { CardAgendamento } from "./CardAgendamento";
 import {
@@ -8,18 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-
-interface Agendamento {
-  id: string;
-  horario: string;
-  nomeCliente: string;
-  nomeServico: string;
-  corProfissional: string;
-  status: string;
-  duracao: number;
-  onClick?: () => void;
-  onDoubleClick?: () => void;
-}
+import type { Agendamento } from "./CalendarioMensal";
 
 interface DiaCalendarioProps {
   dia: number;

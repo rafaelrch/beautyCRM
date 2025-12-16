@@ -90,15 +90,15 @@ export default function CadastroPage() {
 
       // Se já estiver autenticado (email confirmado), atualizar dados na tabela users
       if (authData.session) {
-        const { error: updateError } = await supabase
-          .from("users")
+        const { error: updateError } = await (supabase
+          .from("users") as any)
           .update({
             full_name: fullName,
             salon_name: formData.salonName,
             cnpj: formData.cnpj,
             phone: formData.phone,
             address: formData.address,
-          } as any)
+          })
           .eq("id", authData.user.id);
 
         if (updateError) {

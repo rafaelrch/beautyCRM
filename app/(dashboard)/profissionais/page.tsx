@@ -173,8 +173,8 @@ export default function ProfissionaisPage() {
       />
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-white rounded-xl border border-border p-4">
-        <div className="relative w-full sm:flex-1">
+      <div className="flex items-center gap-4 bg-white rounded-xl border border-border p-4">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
@@ -187,14 +187,13 @@ export default function ProfissionaisPage() {
       </div>
 
       {/* Professionals Table */}
-      <div className="bg-white rounded-xl border border-border p-4 sm:p-6">
+      <div className="bg-white rounded-xl border border-border p-6">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table className="min-w-[640px]">
+          <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
@@ -261,13 +260,12 @@ export default function ProfissionaisPage() {
               )}
             </TableBody>
           </Table>
-          </div>
         )}
       </div>
 
       {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md w-[95vw] sm:w-full">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
               {editingProfissional ? "Editar Profissional" : "Adicionar Profissional"}
@@ -284,7 +282,7 @@ export default function ProfissionaisPage() {
                 placeholder="Nome completo do profissional"
               />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="phone" className="mb-[3px]">Telefone</Label>
                 <Input
@@ -329,7 +327,7 @@ export default function ProfissionaisPage() {
 
             <div>
               <Label htmlFor="cor" className="mb-[3px]">Cor de Identificação *</Label>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-2">
+              <div className="grid grid-cols-6 gap-2 mt-2">
                 {coresPredefinidas.map((cor) => (
                   <button
                     key={cor}

@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import type { Database } from "@/types/database";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
@@ -57,29 +56,28 @@ export default function LoginPage() {
           // Atualizar dados do usuário na tabela users com os dados do metadata
           // Isso garante que os dados estejam sincronizados após confirmação de email
           const userMetadata = data.user.user_metadata || {};
-          const userUpdateData: Partial<Database["public"]["Tables"]["users"]["Update"]> = {};
+          const updateData: any = {};
           
           if (userMetadata.full_name || userMetadata.name) {
-            userUpdateData.full_name = userMetadata.full_name || userMetadata.name;
+            updateData.full_name = userMetadata.full_name || userMetadata.name;
           }
           if (userMetadata.salon_name) {
-            userUpdateData.salon_name = userMetadata.salon_name;
+            updateData.salon_name = userMetadata.salon_name;
           }
           if (userMetadata.cnpj) {
-            userUpdateData.cnpj = userMetadata.cnpj;
+            updateData.cnpj = userMetadata.cnpj;
           }
           if (userMetadata.phone) {
-            userUpdateData.phone = userMetadata.phone;
+            updateData.phone = userMetadata.phone;
           }
           if (userMetadata.address) {
-            userUpdateData.address = userMetadata.address;
+            updateData.address = userMetadata.address;
           }
           
-          if (Object.keys(userUpdateData).length > 0) {
-            const { error: updateError } = await supabase
-              .from("users")
-              // @ts-ignore Supabase client sem tipos gerados
-              .update(userUpdateData)
+          if (Object.keys(updateData).length > 0) {
+            const { error: updateError } = await (supabase
+              .from("users") as any)
+              .update(updateData)
               .eq("id", data.user.id);
 
             if (updateError) {
@@ -120,15 +118,13 @@ export default function LoginPage() {
       {/* Left Side - Login Form */}
       <div className="flex-1 flex items-center justify-center bg-white p-8">
         <div className="w-full max-w-md space-y-8">
-          <div className="flex flex-col items-center gap-3">
-            <Image
-              src="/logo.png"
-              alt="Logo"
-              width={180}
-              height={180}
-              className="object-contain"
-              priority
-            />
+          <div>
+            <h1 className="text-3xl font-bold text-[#6B46C1] mb-2">
+              Bem vindo ao BeautyDesk
+            </h1>
+            <p className="text-muted-foreground">
+              Faça login para acessar seu painel
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
