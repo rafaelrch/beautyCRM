@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Edit, Trash2, CheckCircle2, Clock, XCircle, Phone, Mail, Calendar, Clock as ClockIcon } from "lucide-react";
+import { X, Edit, Trash2, CheckCircle2, Clock, XCircle, Phone, Mail, Calendar, Clock as ClockIcon, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,6 +17,16 @@ import {
   DrawerDescription,
   DrawerFooter,
 } from "@/components/ui/drawer";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { formatDate, formatPhone, formatDuration } from "@/lib/formatters";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -86,6 +96,7 @@ interface DrawerDetalhesProps {
   }) => void;
   onCancel?: () => void;
   onComplete?: () => void;
+  onDelete?: () => void;
 }
 
 const statusConfig = {
@@ -162,6 +173,7 @@ export function DrawerDetalhes({
   onSave,
   onCancel,
   onComplete,
+  onDelete,
 }: DrawerDetalhesProps) {
   const [statusEditado, setStatusEditado] = useState<string>("");
   const [observacaoEditada, setObservacaoEditada] = useState<string>("");
@@ -169,6 +181,7 @@ export function DrawerDetalhes({
   const [horarioEditado, setHorarioEditado] = useState<string>("");
   const [servicoEditado, setServicoEditado] = useState<string>("");
   const [profissionalEditado, setProfissionalEditado] = useState<string>("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     if (agendamento) {
@@ -264,10 +277,13 @@ export function DrawerDetalhes({
   const servicoSelecionado = servicos.find((s) => s.id === servicoEditado);
   const profissionalSelecionado = profissionais.find((p) => p.id === profissionalEditado);
 
-  const handleCancel = () => {
-    if (confirm("Tem certeza que deseja cancelar este agendamento?")) {
-      onCancel?.();
-    }
+  const handleDelete = () => {
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    onDelete?.();
+    setIsDeleteDialogOpen(false);
   };
 
   const getIniciais = (nome: string) => {
@@ -542,15 +558,51 @@ export function DrawerDetalhes({
               </Button>
               <Button 
                 variant="outline"
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700"
-                onClick={handleCancel}
+                className="w-full bg-red-50 hover:bg-red-100 text-red-600 border-red-200 hover:border-red-300"
+                onClick={handleDelete}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Cancelar Agendamento
+                Deletar Agendamento
               </Button>
             </div>
           </DrawerFooter>
         </div>
+
+        {/* Dialog de confirmação de exclusão */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <AlertDialogTitle className="text-lg">Deletar Agendamento</AlertDialogTitle>
+                  <AlertDialogDescription className="text-sm text-muted-foreground">
+                    Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </div>
+              </div>
+            </AlertDialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-foreground">
+                Tem certeza que deseja <span className="font-semibold text-red-600">excluir permanentemente</span> o agendamento de{" "}
+                <span className="font-semibold">{agendamento.cliente.nome}</span> para o serviço{" "}
+                <span className="font-semibold">{agendamento.servico.nome}</span>?
+              </p>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Sim, deletar agendamento
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DrawerContent>
     </Drawer>
   );

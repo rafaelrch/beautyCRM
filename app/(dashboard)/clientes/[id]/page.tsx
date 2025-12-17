@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Edit, Trash2, Loader2 } from "lucide-react";
 import { formatCurrency, formatDate, formatDateTime, formatPhone, formatCPF } from "@/lib/formatters";
-import { getClients, getAppointments, deleteClient, getServices } from "@/lib/supabase-helpers";
+import { getClients, getAppointments, deleteClient, getServices, getTransactions } from "@/lib/supabase-helpers";
 import { useToast } from "@/hooks/use-toast";
 import type { Client, Appointment } from "@/types";
 import type { Database } from "@/types/database";
@@ -17,6 +17,15 @@ import Link from "next/link";
 type ClientRow = Database["public"]["Tables"]["clients"]["Row"];
 type AppointmentRow = Database["public"]["Tables"]["appointments"]["Row"];
 type ServiceRow = Database["public"]["Tables"]["services"]["Row"];
+type TransactionRow = Database["public"]["Tables"]["transactions"]["Row"];
+
+interface ServiceHistory {
+  id: string;
+  date: Date;
+  serviceName: string;
+  amount: number;
+  status: string;
+}
 
 export default function ClientDetailsPage() {
   const params = useParams();
@@ -24,6 +33,7 @@ export default function ClientDetailsPage() {
   const [client, setClient] = useState<Client | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<ServiceRow[]>([]);
+  const [serviceHistory, setServiceHistory] = useState<ServiceHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -34,10 +44,11 @@ export default function ClientDetailsPage() {
   const loadClientData = async () => {
     try {
       setIsLoading(true);
-      const [clientsData, appointmentsData, servicesData] = await Promise.all([
+      const [clientsData, appointmentsData, servicesData, transactionsData] = await Promise.all([
         getClients(),
         getAppointments(),
         getServices(),
+        getTransactions(),
       ]);
 
       // Encontrar o cliente
@@ -105,6 +116,44 @@ export default function ClientDetailsPage() {
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       setAppointments(clientAppointments);
+
+      // Buscar histórico de serviços a partir das transações de receita do cliente
+      const clientTransactions: ServiceHistory[] = transactionsData
+        .filter((t: TransactionRow) => 
+          t.client_id === foundClient.id && 
+          t.type === "income" && 
+          t.status === "completed"
+        )
+        .map((t: TransactionRow) => {
+          // Converter data
+          let transactionDate: Date;
+          const dateValue = t.date as string;
+          if (dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = dateValue.split('-').map(Number);
+            transactionDate = new Date(year, month - 1, day);
+          } else {
+            transactionDate = new Date(dateValue);
+          }
+
+          // Extrair nome do serviço da categoria ou descrição
+          let serviceName = t.description || t.category || "Serviço";
+          if (t.category && t.category.startsWith("Serviços - ")) {
+            serviceName = t.category.replace("Serviços - ", "");
+          } else if (t.category && t.category.startsWith("Venda de Produto - ")) {
+            serviceName = t.category.replace("Venda de Produto - ", "");
+          }
+
+          return {
+            id: t.id,
+            date: transactionDate,
+            serviceName: serviceName,
+            amount: Number(t.amount) || 0,
+            status: "completed",
+          };
+        })
+        .sort((a: ServiceHistory, b: ServiceHistory) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      setServiceHistory(clientTransactions);
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -131,14 +180,6 @@ export default function ClientDetailsPage() {
       </div>
     );
   }
-
-  const completedAppointments = appointments.filter(
-    (apt) => apt.status === "completed"
-  );
-  const averageTicket =
-    completedAppointments.length > 0
-      ? (client?.totalSpent || 0) / completedAppointments.length
-      : 0;
 
   const handleDelete = async () => {
     if (!client) return;
@@ -244,20 +285,16 @@ export default function ClientDetailsPage() {
           <CardContent className="space-y-2">
             <div>
               <p className="text-xs text-muted-foreground">Total de Visitas</p>
-              <p className="text-2xl font-bold">{client.totalVisits}</p>
+              <p className="text-2xl font-bold">{serviceHistory.length}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Total Gasto</p>
               <p className="text-2xl font-bold">{formatCurrency(client.totalSpent)}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Ticket Médio</p>
-              <p className="text-lg font-semibold">{formatCurrency(averageTicket)}</p>
-            </div>
-            <div>
               <p className="text-xs text-muted-foreground">Última Visita</p>
               <p className="text-sm font-medium">
-                {client.lastVisit ? formatDate(typeof client.lastVisit === 'string' ? new Date(client.lastVisit) : client.lastVisit) : "Nunca"}
+                {serviceHistory.length > 0 ? formatDate(serviceHistory[0].date) : "Nunca"}
               </p>
             </div>
             <div>
@@ -293,58 +330,40 @@ export default function ClientDetailsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Data</TableHead>
-                <TableHead>Serviços</TableHead>
-                <TableHead>Valor</TableHead>
+                <TableHead>Serviço</TableHead>
+                <TableHead>Valor Pago</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {appointments.length === 0 ? (
+              {serviceHistory.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                     Nenhum serviço registrado.
                   </TableCell>
                 </TableRow>
               ) : (
-                appointments.map((appointment) => {
-                  const appointmentServices = appointment.serviceIds
-                    .map((id) => services.find((s) => s.id === id))
-                    .filter(Boolean) as ServiceRow[];
-                  
-                  return (
-                    <TableRow key={appointment.id}>
-                      <TableCell>
-                        {formatDateTime(typeof appointment.date === 'string' ? new Date(appointment.date) : appointment.date)}
-                      </TableCell>
-                      <TableCell>
-                        {appointmentServices.map((s) => s.name).join(", ")}
-                      </TableCell>
-                      <TableCell>{formatCurrency(appointment.totalAmount)}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            appointment.status === "completed"
-                              ? "bg-green-100 text-green-700 border-green-200"
-                              : appointment.status === "cancelled"
-                              ? "bg-red-100 text-red-700 border-red-200"
-                              : appointment.status === "no-show"
-                              ? "bg-orange-100 text-orange-700 border-orange-200"
-                              : "bg-yellow-100 text-yellow-700 border-yellow-200"
-                          }
-                        >
-                          {appointment.status === "completed"
-                            ? "Concluído"
-                            : appointment.status === "cancelled"
-                            ? "Cancelado"
-                            : appointment.status === "no-show"
-                            ? "Não Compareceu"
-                            : "Agendado"}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                serviceHistory.map((service) => (
+                  <TableRow key={service.id}>
+                    <TableCell>
+                      {formatDate(service.date)}
+                    </TableCell>
+                    <TableCell>
+                      {service.serviceName}
+                    </TableCell>
+                    <TableCell className="font-medium text-green-600">
+                      {formatCurrency(service.amount)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className="bg-green-100 text-green-700 border-green-200"
+                      >
+                        Concluído
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>

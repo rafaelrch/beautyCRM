@@ -8,9 +8,11 @@ export const formatCurrency = (value: number): string => {
 
 // Helper para converter string de data (YYYY-MM-DD) para Date no timezone local
 const parseLocalDate = (dateString: string): Date => {
-  // Se a string já tem hora/timezone, usar new Date normalmente
+  // Se a string tem hora/timezone, extrair apenas a parte da data para evitar problemas de timezone
   if (dateString.includes('T') || dateString.includes(' ')) {
-    return new Date(dateString);
+    const datePart = dateString.split(/[T ]/)[0];
+    const [year, month, day] = datePart.split('-').map(Number);
+    return new Date(year, month - 1, day);
   }
   // Se for apenas data (YYYY-MM-DD), criar Date no timezone local
   const [year, month, day] = dateString.split('-').map(Number);

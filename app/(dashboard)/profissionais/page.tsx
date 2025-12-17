@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -49,6 +59,9 @@ export default function ProfissionaisPage() {
   const [formCor, setFormCor] = useState("#FF6B6B");
   const [formEspecialidade, setFormEspecialidade] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [professionalToDelete, setProfessionalToDelete] = useState<Professional | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -90,11 +103,16 @@ export default function ProfissionaisPage() {
     setIsDialogOpen(true);
   };
 
-  const handleDeleteProfissional = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este profissional?")) return;
+  const handleDeleteProfissional = (professional: Professional) => {
+    setProfessionalToDelete(professional);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteProfissional = async () => {
+    if (!professionalToDelete) return;
 
     try {
-      await deleteProfessional(id);
+      await deleteProfessional(professionalToDelete.id);
       toast({
         title: "Sucesso",
         description: "Profissional excluído com sucesso!",
@@ -106,11 +124,18 @@ export default function ProfissionaisPage() {
         description: error.message || "Erro ao excluir profissional",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setProfessionalToDelete(null);
     }
   };
 
   const handleSaveProfissional = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Previne submissão dupla
+    if (isSubmitting) return;
+    
     const formData = new FormData(e.currentTarget);
 
     if (!formEspecialidade) {
@@ -123,6 +148,8 @@ export default function ProfissionaisPage() {
     }
 
     try {
+      setIsSubmitting(true);
+      
       if (editingProfissional) {
         await updateProfessional(editingProfissional.id, {
           name: formData.get("nome") as string,
@@ -161,6 +188,8 @@ export default function ProfissionaisPage() {
         description: error.message || "Erro ao salvar profissional",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -249,7 +278,7 @@ export default function ProfissionaisPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteProfissional(profissional.id)}
+                          onClick={() => handleDeleteProfissional(profissional)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -355,6 +384,7 @@ export default function ProfissionaisPage() {
               <Button
                 type="button"
                 variant="outline"
+                disabled={isSubmitting}
                 onClick={() => {
                   setIsDialogOpen(false);
                   setEditingProfissional(null);
@@ -364,13 +394,45 @@ export default function ProfissionaisPage() {
               >
                 Cancelar
               </Button>
-              <Button type="submit">
-                {editingProfissional ? "Atualizar" : "Adicionar"} Profissional
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    {editingProfissional ? "Atualizar" : "Adicionar"} Profissional
+                  </>
+                )}
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o profissional <strong>{professionalToDelete?.name}</strong>?
+              <br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteProfissional}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sim, Excluir Profissional
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

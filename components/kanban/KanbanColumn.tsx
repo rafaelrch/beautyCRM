@@ -43,16 +43,28 @@ export function KanbanColumn({
 
   const cardIds = cards.map((card) => card.id);
 
-  // Função para obter cor do indicador de status
+  // Função para obter cor do indicador de status (círculo interno)
   const getStatusIndicatorColor = (status: string): string => {
     const colors: Record<string, string> = {
-      agendado: "bg-yellow-500",
-      confirmado: "bg-blue-500",
-      concluido: "bg-green-500",
-      cancelado: "bg-red-500",
-      nao_compareceu: "bg-orange-500",
+      scheduled: "bg-yellow-500",
+      confirmed: "bg-blue-500",
+      completed: "bg-green-500",
+      cancelled: "bg-red-500",
+      "no-show": "bg-orange-500",
     };
     return colors[status] || "bg-gray-400";
+  };
+
+  // Função para obter cor de fundo do círculo externo
+  const getStatusBackgroundColor = (status: string): string => {
+    const colors: Record<string, string> = {
+      scheduled: "bg-yellow-100",
+      confirmed: "bg-blue-100",
+      completed: "bg-green-100",
+      cancelled: "bg-red-100",
+      "no-show": "bg-orange-100",
+    };
+    return colors[status] || "bg-gray-100";
   };
 
   return (
@@ -67,8 +79,8 @@ export function KanbanColumn({
           <div className="flex items-center gap-2.5">
             {/* Ícone circular com indicador de status */}
             <div className="relative">
-              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                <div className={`w-2.5 h-2.5 rounded-full ${getStatusIndicatorColor(column.status)}`} />
+              <div className={`w-8 h-8 rounded-full ${getStatusBackgroundColor(column.status)} flex items-center justify-center`}>
+                <div className={`w-3 h-3 rounded-full ${getStatusIndicatorColor(column.status)}`} />
               </div>
             </div>
             {/* Título da coluna */}

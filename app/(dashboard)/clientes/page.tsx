@@ -7,6 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +39,9 @@ export default function ClientsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [birthdate, setBirthdate] = useState<string>("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -146,7 +159,23 @@ export default function ClientsPage() {
         const totalSpent = Number(client.total_spent) || clientTotals.get(client.id) || 0;
         
         // Usar os valores calculados dos agendamentos (ou os do banco se não houver agendamentos)
-        const lastVisit = clientLastVisits.get(client.id) || (client.last_visit ? new Date(client.last_visit) : null);
+        // Extrair apenas a data (YYYY-MM-DD) para evitar problemas de timezone
+        let lastVisitFromDb: Date | null = null;
+        if (client.last_visit) {
+          const lastVisitStr = String(client.last_visit);
+          // Se tiver formato com hora/timezone, extrair apenas a parte da data
+          if (lastVisitStr.includes(' ') || lastVisitStr.includes('T')) {
+            const datePart = lastVisitStr.split(/[T ]/)[0];
+            const [year, month, day] = datePart.split('-').map(Number);
+            lastVisitFromDb = new Date(year, month - 1, day);
+          } else if (lastVisitStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = lastVisitStr.split('-').map(Number);
+            lastVisitFromDb = new Date(year, month - 1, day);
+          } else {
+            lastVisitFromDb = new Date(lastVisitStr);
+          }
+        }
+        const lastVisit = clientLastVisits.get(client.id) || lastVisitFromDb;
         const totalVisits = clientVisitCounts.get(client.id) || Number(client.total_visits || 0);
 
         return {
@@ -188,19 +217,26 @@ export default function ClientsPage() {
 
   const handleAddClient = () => {
     setEditingClient(null);
+    setBirthdate("");
     setIsDialogOpen(true);
   };
 
   const handleEditClient = (client: Client) => {
     setEditingClient(client);
+    setBirthdate(client.birthdate ? new Date(client.birthdate).toISOString().split("T")[0] : "");
     setIsDialogOpen(true);
   };
 
-  const handleDeleteClient = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este cliente?")) return;
+  const handleDeleteClient = (client: Client) => {
+    setClientToDelete(client);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteClient = async () => {
+    if (!clientToDelete) return;
 
     try {
-      await deleteClient(id);
+      await deleteClient(clientToDelete.id);
       toast({
         title: "Sucesso",
         description: "Cliente excluído com sucesso!",
@@ -212,6 +248,9 @@ export default function ClientsPage() {
         description: error.message || "Erro ao excluir cliente",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setClientToDelete(null);
     }
   };
 
@@ -366,7 +405,7 @@ export default function ClientsPage() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleDeleteClient(client.id)}
+                        onClick={() => handleDeleteClient(client)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -410,28 +449,17 @@ export default function ClientsPage() {
                 <Label htmlFor="birthdate" className="mb-[3px]">Data de Nascimento</Label>
                 <DatePicker
                   id="birthdate"
-                  value={
-                    editingClient?.birthdate
-                      ? new Date(editingClient.birthdate)
-                      : undefined
-                  }
+                  mode="birthdate"
+                  value={birthdate || undefined}
                   onChange={(date) => {
-                    const hiddenInput = document.getElementById("birthdate-hidden") as HTMLInputElement;
-                    if (hiddenInput) {
-                      hiddenInput.value = date;
-                    }
+                    setBirthdate(date);
                   }}
                   placeholder="Selecione a data de nascimento"
                 />
                 <input
                   type="hidden"
-                  id="birthdate-hidden"
                   name="birthdate"
-                  value={
-                    editingClient?.birthdate
-                      ? new Date(editingClient.birthdate).toISOString().split("T")[0]
-                      : ""
-                  }
+                  value={birthdate}
                 />
               </div>
               <div>
@@ -476,6 +504,29 @@ export default function ClientsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o cliente <strong>{clientToDelete?.name}</strong>?
+              <br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteClient}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sim, Excluir Cliente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

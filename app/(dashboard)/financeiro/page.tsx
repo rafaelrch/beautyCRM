@@ -171,6 +171,10 @@ export default function FinancialPage() {
           status: transaction.status,
         };
       });
+      
+      // Ordenar por data decrescente (mais recentes primeiro)
+      formattedTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
       setTransactions(formattedTransactions);
     } catch (error: any) {
       toast({
@@ -265,9 +269,14 @@ export default function FinancialPage() {
           throw new Error("Por favor, selecione um serviço");
         }
         const selectedService = services.find(s => s.id === selectedServiceId);
+        const selectedClient = clients.find(c => c.id === selectedClientId);
         if (selectedService) {
           category = `Serviços - ${selectedService.name}`;
           serviceIds = [selectedServiceId];
+          // Gerar descrição automática se não houver campo de descrição
+          if (!formData.get("description")) {
+            formData.set("description", `${selectedService.name} - Cliente: ${selectedClient?.name || "N/A"}`);
+          }
         } else {
           throw new Error("Serviço selecionado não encontrado");
         }
@@ -316,15 +325,7 @@ export default function FinancialPage() {
           nonRegisteredClient = nonRegisteredClientName;
         }
         
-        // Diminuir quantidade do estoque
-        const currentQuantity = Number(selectedProduct.quantity);
-        const newQuantity = currentQuantity - quantityValue;
-        
-        await updateProduct(selectedProductId, {
-          quantity: newQuantity,
-        });
-        
-        // Criar movimento de estoque (saída)
+        // Criar movimento de estoque (saída) - o trigger do banco de dados atualiza a quantidade automaticamente
         await createStockMovement({
           product_id: selectedProductId,
           type: "out",
@@ -358,16 +359,7 @@ export default function FinancialPage() {
         // Sobrescrever o amount do form com o valor calculado
         formData.set("amount", totalValue.toFixed(2));
         
-        // Aumentar quantidade do estoque
-        const currentQuantity = Number(selectedProduct.quantity);
-        const newQuantity = currentQuantity + quantityValue;
-        
-        await updateProduct(selectedProductId, {
-          quantity: newQuantity,
-          last_purchase: dateValue,
-        });
-        
-        // Criar movimento de estoque (entrada)
+        // Criar movimento de estoque (entrada) - o trigger do banco de dados atualiza a quantidade automaticamente
         await createStockMovement({
           product_id: selectedProductId,
           type: "in",
@@ -668,7 +660,9 @@ export default function FinancialPage() {
                     value={dateFilterStart}
                     onChange={(date: string) => {
                       if (date) {
-                        setDateFilterStart(new Date(date));
+                        // Criar data no timezone local
+                        const [year, month, day] = date.split('-').map(Number);
+                        setDateFilterStart(new Date(year, month - 1, day));
                       } else {
                         setDateFilterStart(undefined);
                       }
@@ -682,7 +676,9 @@ export default function FinancialPage() {
                     value={dateFilterEnd}
                     onChange={(date: string) => {
                       if (date) {
-                        setDateFilterEnd(new Date(date));
+                        // Criar data no timezone local
+                        const [year, month, day] = date.split('-').map(Number);
+                        setDateFilterEnd(new Date(year, month - 1, day));
                       } else {
                         setDateFilterEnd(undefined);
                       }

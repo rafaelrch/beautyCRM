@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
@@ -11,7 +11,8 @@ import {
   Trash2,
   Eye,
   MoreVertical,
-  DollarSign
+  DollarSign,
+  AlertTriangle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -19,6 +20,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { KanbanCard as KanbanCardType } from "@/types/kanban";
 
 interface KanbanCardProps {
@@ -45,7 +56,9 @@ const getStatusDotColor = (status: string): string => {
   return colors[status] || "bg-gray-400";
 };
 
-export function KanbanCard({ card, onEdit, onDelete, onViewDetails }: KanbanCardProps) {
+export const KanbanCard = ({ card, onEdit, onDelete, onViewDetails }: KanbanCardProps) => {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  
   const {
     attributes,
     listeners,
@@ -181,12 +194,8 @@ export function KanbanCard({ card, onEdit, onDelete, onViewDetails }: KanbanCard
                   <Eye className="mr-2 h-4 w-4" />
                   Ver detalhes
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onEdit(card)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Editar
-                </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => onDelete(card.id)}
+                  onClick={() => setIsDeleteDialogOpen(true)}
                   className="text-destructive"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
@@ -197,7 +206,46 @@ export function KanbanCard({ card, onEdit, onDelete, onViewDetails }: KanbanCard
           </div>
         </div>
       </div>
+
+      {/* Dialog de confirmação de exclusão */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <AlertDialogTitle className="text-lg">Excluir Agendamento</AlertDialogTitle>
+                <AlertDialogDescription className="text-sm text-muted-foreground">
+                  Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-foreground">
+              Tem certeza que deseja <span className="font-semibold text-red-600">excluir permanentemente</span> o agendamento de{" "}
+              <span className="font-semibold">{card.clienteNome}</span> para o serviço{" "}
+              <span className="font-semibold">{card.servico}</span>?
+            </p>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                onDelete(card.id);
+                setIsDeleteDialogOpen(false);
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Sim, excluir agendamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
-}
+};
 

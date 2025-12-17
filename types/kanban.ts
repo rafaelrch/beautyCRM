@@ -37,3 +37,5 @@ export const getColumnColor = (status: string): string => {
   return colors[status] || "bg-gray-100 text-gray-800 border-gray-200";
 };
 
+
+

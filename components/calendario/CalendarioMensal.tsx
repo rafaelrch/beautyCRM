@@ -67,6 +67,9 @@ export function CalendarioMensal({
   };
 
   const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  
+  // Verificar se está visualizando o mês atual
+  const estaNomesAtual = isSameMonth(dataAtual, hoje);
 
   return (
     <div className="space-y-4">
@@ -82,9 +85,11 @@ export function CalendarioMensal({
           <Button variant="outline" size="icon" onClick={irParaProximoMes}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button variant="outline" onClick={irParaHoje}>
-            Hoje
-          </Button>
+          {estaNomesAtual && (
+            <Button variant="outline" onClick={irParaHoje}>
+              Hoje
+            </Button>
+          )}
         </div>
       </div>
 

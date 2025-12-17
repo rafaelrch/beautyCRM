@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -44,6 +54,8 @@ export default function ServicesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -91,11 +103,16 @@ export default function ServicesPage() {
     setIsDialogOpen(true);
   };
 
-  const handleDeleteService = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este serviço?")) return;
+  const handleDeleteService = (service: Service) => {
+    setServiceToDelete(service);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteService = async () => {
+    if (!serviceToDelete) return;
 
     try {
-      await deleteService(id);
+      await deleteService(serviceToDelete.id);
       toast({
         title: "Sucesso",
         description: "Serviço excluído com sucesso!",
@@ -107,6 +124,9 @@ export default function ServicesPage() {
         description: error.message || "Erro ao excluir serviço",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setServiceToDelete(null);
     }
   };
 
@@ -233,7 +253,7 @@ export default function ServicesPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteService(service.id)}
+                          onClick={() => handleDeleteService(service)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -332,6 +352,29 @@ export default function ServicesPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o serviço <strong>{serviceToDelete?.name}</strong>?
+              <br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteService}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sim, Excluir Serviço
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

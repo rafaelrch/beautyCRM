@@ -19,9 +19,12 @@ interface DatePickerProps {
   placeholder?: string;
   disabled?: boolean;
   minDate?: Date;
+  maxDate?: Date;
   className?: string;
   id?: string;
   required?: boolean;
+  /** Modo do calendário: "default" para navegação normal, "birthdate" para seleção de data de nascimento com dropdowns */
+  mode?: "default" | "birthdate";
 }
 
 export function DatePicker({
@@ -30,9 +33,11 @@ export function DatePicker({
   placeholder = "Selecione uma data",
   disabled = false,
   minDate,
+  maxDate,
   className,
   id,
   required = false,
+  mode = "default",
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
   
@@ -70,6 +75,13 @@ export function DatePicker({
     }
   };
 
+  // Configurações para modo birthdate
+  const currentYear = new Date().getFullYear();
+  const isBirthdateMode = mode === "birthdate";
+  const fromYear = isBirthdateMode ? 1920 : currentYear - 10;
+  const toYear = isBirthdateMode ? currentYear : currentYear + 10;
+  const defaultMonth = isBirthdateMode && !date ? new Date(1990, 0, 1) : date;
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -98,6 +110,10 @@ export function DatePicker({
           onSelect={handleSelect}
           disabled={minDate ? (date) => date < minDate : undefined}
           initialFocus
+          captionLayout={isBirthdateMode ? "dropdown" : "label"}
+          fromYear={fromYear}
+          toYear={toYear}
+          defaultMonth={defaultMonth}
         />
       </PopoverContent>
     </Popover>
