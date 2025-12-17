@@ -36,8 +36,8 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from("users")
+      const { data, error } = await (supabase
+        .from("users") as any)
         .select("*")
         .eq("id", user.id)
         .single();
@@ -47,14 +47,23 @@ export default function SettingsPage() {
       }
 
       if (data) {
+        const userData = data as {
+          id: string;
+          email: string | null;
+          full_name: string | null;
+          salon_name: string | null;
+          cnpj: string | null;
+          phone: string | null;
+          address: string | null;
+        };
         setConfig({
-          id: data.id,
-          email: data.email || "",
-          full_name: data.full_name || "",
-          salon_name: data.salon_name || "",
-          cnpj: data.cnpj || "",
-          phone: data.phone || "",
-          address: data.address || "",
+          id: userData.id,
+          email: userData.email || "",
+          full_name: userData.full_name || "",
+          salon_name: userData.salon_name || "",
+          cnpj: userData.cnpj || "",
+          phone: userData.phone || "",
+          address: userData.address || "",
         });
       }
     } catch (error: any) {
@@ -86,8 +95,8 @@ export default function SettingsPage() {
         full_name: formData.get("full_name") as string,
       };
 
-      const { error } = await supabase
-        .from("users")
+      const { error } = await (supabase
+        .from("users") as any)
         .update(updatedData)
         .eq("id", config.id);
 
