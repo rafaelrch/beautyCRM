@@ -179,7 +179,6 @@ export default function ServicesPage() {
       <Header title="Serviços" actionLabel="Adicionar Serviço" onAction={handleAddService} />
 
       {/* Category Tabs */}
-      <div className="bg-white rounded-xl border border-border p-4">
         <Tabs value={activeCategory} onValueChange={setActiveCategory}>
           <TabsList>
             {categories.map((cat) => (
@@ -189,7 +188,6 @@ export default function ServicesPage() {
             ))}
           </TabsList>
         </Tabs>
-      </div>
 
       {/* Services Table */}
       <div className="bg-white rounded-xl border border-border p-6">
