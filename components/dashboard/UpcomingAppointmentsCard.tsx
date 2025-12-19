@@ -73,6 +73,18 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+function formatTime(time: string): string {
+  // Extrair apenas horas e minutos (hh:mm)
+  // Aceita formatos como "09:00:00", "09:00:0", "09:00", etc.
+  const timeMatch = time.match(/^(\d{1,2}):(\d{2})/);
+  if (timeMatch) {
+    const hours = timeMatch[1].padStart(2, '0');
+    const minutes = timeMatch[2];
+    return `${hours}:${minutes}`;
+  }
+  return time; // Retorna o original se não conseguir formatar
+}
+
 export function UpcomingAppointmentsCard({
   appointments,
   clients,
@@ -87,8 +99,8 @@ export function UpcomingAppointmentsCard({
   const displayAppointments = appointments.slice(0, 8);
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-3">
+    <Card className="h-full flex flex-col min-h-0">
+      <CardHeader className="pb-3 flex-shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-semibold">
             Próximos Agendamentos
@@ -98,7 +110,7 @@ export function UpcomingAppointmentsCard({
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 overflow-hidden">
+      <CardContent className="flex-1 min-h-0 overflow-hidden flex flex-col">
         {displayAppointments.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <Calendar className="h-12 w-12 text-muted-foreground/50 mb-3" />
@@ -107,7 +119,7 @@ export function UpcomingAppointmentsCard({
             </p>
           </div>
         ) : (
-          <ScrollArea className="h-[340px] pr-4">
+          <ScrollArea className="flex-1 min-h-0 pr-4">
             <div className="space-y-3">
               {displayAppointments.map((appointment) => {
                 const clientName = getClientName(appointment.clientId);
@@ -124,15 +136,17 @@ export function UpcomingAppointmentsCard({
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{clientName}</p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        <span>
+                        <Calendar className="h-3 w-3 shrink-0" />
+                        <span className="truncate">
                           {format(appointment.date, "dd/MM", { locale: ptBR })}
                         </span>
-                        <Clock className="h-3 w-3 ml-1" />
-                        <span>{appointment.startTime}</span>
+                        <Clock className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{formatTime(appointment.startTime)}</span>
                       </div>
                     </div>
-                    {getStatusBadge(appointment.status)}
+                    <div className="shrink-0">
+                      {getStatusBadge(appointment.status)}
+                    </div>
                   </div>
                 );
               })}

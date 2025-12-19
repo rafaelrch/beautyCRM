@@ -142,8 +142,17 @@ export default function FinancialPage() {
     try {
       setIsLoading(true);
       const data = await getTransactions();
+      
+      // Ordenar por created_at decrescente (mais recentemente adicionadas primeiro)
+      // Se created_at não existir, usar updated_at
+      const sortedData = [...data].sort((a: TransactionRow, b: TransactionRow) => {
+        const dateA = a.created_at || a.updated_at || '';
+        const dateB = b.created_at || b.updated_at || '';
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
+      });
+      
       // Converter dados do Supabase para o formato esperado
-      const formattedTransactions: Transaction[] = data.map((transaction: TransactionRow) => {
+      const formattedTransactions: Transaction[] = sortedData.map((transaction: TransactionRow) => {
         // Converter data string (YYYY-MM-DD) para Date no timezone local
         let transactionDate: Date;
         if (typeof transaction.date === 'string') {
@@ -172,9 +181,6 @@ export default function FinancialPage() {
         };
       });
       
-      // Ordenar por data decrescente (mais recentes primeiro)
-      formattedTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      
       setTransactions(formattedTransactions);
     } catch (error: any) {
       toast({
@@ -190,30 +196,12 @@ export default function FinancialPage() {
   const today = new Date();
   const thisMonth = startOfMonth(today);
 
-  const todayIncome = transactions
-    .filter((t) => t.type === "income" && isSameDay(new Date(t.date), today) && t.status === "completed")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const todayExpense = transactions
-    .filter((t) => t.type === "expense" && isSameDay(new Date(t.date), today) && t.status === "completed")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const monthIncome = transactions
-    .filter((t) => t.type === "income" && new Date(t.date) >= thisMonth && t.status === "completed")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const monthExpense = transactions
-    .filter((t) => t.type === "expense" && new Date(t.date) >= thisMonth && t.status === "completed")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const pendingTransactions = transactions.filter((t) => t.status === "pending");
-  const pendingAmount = pendingTransactions.reduce((sum, t) => sum + t.amount, 0);
-
   // Obter categorias únicas das transações
   const categorias = Array.from(new Set(transactions.map(t => t.category))).sort();
   const categoriasServicos = categorias.filter(c => c.startsWith("Serviços"));
   const categoriasProdutos = categorias.filter(c => !c.startsWith("Serviços"));
 
+  // Filtrar transações aplicando todos os filtros
   const filteredTransactions = transactions.filter((t) => {
     const matchesType = typeFilter === "all" || t.type === typeFilter;
     const matchesCategory = categoryFilter === "all" || 
@@ -243,9 +231,83 @@ export default function FinancialPage() {
     return matchesType && matchesCategory && matchesPaymentMethod && matchesDate;
   });
 
+  // Verificar se há filtros de data aplicados
+  const hasDateFilter = dateFilterStart || dateFilterEnd;
+
+  // Calcular receita e despesa baseado nos filtros ou valores padrão
+  const calculateIncome = () => {
+    if (hasDateFilter) {
+      // Se há filtro de data, usar as transações filtradas
+      return filteredTransactions
+        .filter((t) => t.type === "income" && t.status === "completed")
+        .reduce((sum, t) => sum + t.amount, 0);
+    } else {
+      // Sem filtro, usar receita de hoje
+      return transactions
+        .filter((t) => t.type === "income" && isSameDay(new Date(t.date), today) && t.status === "completed")
+        .reduce((sum, t) => sum + t.amount, 0);
+    }
+  };
+
+  const calculateExpense = () => {
+    if (hasDateFilter) {
+      // Se há filtro de data, usar as transações filtradas
+      return filteredTransactions
+        .filter((t) => t.type === "expense" && t.status === "completed")
+        .reduce((sum, t) => sum + t.amount, 0);
+    } else {
+      // Sem filtro, usar despesa de hoje
+      return transactions
+        .filter((t) => t.type === "expense" && isSameDay(new Date(t.date), today) && t.status === "completed")
+        .reduce((sum, t) => sum + t.amount, 0);
+    }
+  };
+
+  const calculateMonthIncome = () => {
+    if (hasDateFilter) {
+      // Se há filtro de data, usar as transações filtradas
+      return filteredTransactions
+        .filter((t) => t.type === "income" && t.status === "completed")
+        .reduce((sum, t) => sum + t.amount, 0);
+    } else {
+      // Sem filtro, usar receita mensal
+      return transactions
+        .filter((t) => t.type === "income" && new Date(t.date) >= thisMonth && t.status === "completed")
+        .reduce((sum, t) => sum + t.amount, 0);
+    }
+  };
+
+  const calculateMonthExpense = () => {
+    if (hasDateFilter) {
+      // Se há filtro de data, usar as transações filtradas
+      return filteredTransactions
+        .filter((t) => t.type === "expense" && t.status === "completed")
+        .reduce((sum, t) => sum + t.amount, 0);
+    } else {
+      // Sem filtro, usar despesa mensal
+      return transactions
+        .filter((t) => t.type === "expense" && new Date(t.date) >= thisMonth && t.status === "completed")
+        .reduce((sum, t) => sum + t.amount, 0);
+    }
+  };
+
+  const todayIncome = calculateIncome();
+  const todayExpense = calculateExpense();
+  const monthIncome = calculateMonthIncome();
+  const monthExpense = calculateMonthExpense();
+
+  const pendingTransactions = transactions.filter((t) => t.status === "pending");
+  const pendingAmount = pendingTransactions.reduce((sum, t) => sum + t.amount, 0);
+
   const handleSaveTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+
+    // Exibir notificação de que a transação está sendo registrada
+    toast({
+      title: "Registrando...",
+      description: "A transação está sendo registrada, por favor aguarde.",
+    });
 
     try {
       const dateValue = formData.get("date") as string;
@@ -462,7 +524,9 @@ export default function FinancialPage() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-muted-foreground mb-1">Receita Hoje</p>
+                <p className="text-sm text-muted-foreground mb-1">
+                  {hasDateFilter ? "Faturamento no Período" : "Faturamento Hoje"}
+                </p>
                 <p className="text-2xl font-bold text-green-600">{formatCurrency(todayIncome)}</p>
               </div>
               <div className="flex-shrink-0 ml-4">
@@ -475,7 +539,9 @@ export default function FinancialPage() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-muted-foreground mb-1">Despesa Hoje</p>
+                <p className="text-sm text-muted-foreground mb-1">
+                  {hasDateFilter ? "Despesa no Período" : "Despesa Hoje"}
+                </p>
                 <p className="text-2xl font-bold text-red-600">{formatCurrency(todayExpense)}</p>
               </div>
               <div className="flex-shrink-0 ml-4">
@@ -488,7 +554,9 @@ export default function FinancialPage() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-muted-foreground mb-1">Receita Mensal</p>
+                <p className="text-sm text-muted-foreground mb-1">
+                  {hasDateFilter ? "Faturamento Total" : "Faturamento Mensal"}
+                </p>
                 <p className="text-2xl font-bold text-green-600">{formatCurrency(monthIncome)}</p>
               </div>
               <div className="flex-shrink-0 ml-4">
@@ -1540,6 +1608,12 @@ export default function FinancialPage() {
                 onSubmit={async (e) => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
+
+                  // Exibir notificação de que a transação está sendo atualizada
+                  toast({
+                    title: "Atualizando...",
+                    description: "A transação está sendo atualizada, por favor aguarde.",
+                  });
 
                   try {
                     const dateValue = formData.get("date") as string;

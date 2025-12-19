@@ -95,9 +95,9 @@ export function FinancialChartCard({
           <CardTitle className="text-lg font-semibold">Financeiro</CardTitle>
           <div className="flex gap-4 text-sm">
             <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-emerald-500" />
+              <div className="h-3 w-3 rounded-full bg-blue-500" />
               <span className="text-muted-foreground">Receita</span>
-              <span className="font-semibold text-emerald-600">
+              <span className="font-semibold text-blue-600">
                 {formatCurrency(totals.receita)}
               </span>
             </div>
@@ -120,8 +120,8 @@ export function FinancialChartCard({
             >
               <defs>
                 <linearGradient id="colorReceita" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorDespesa" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
@@ -170,7 +170,7 @@ export function FinancialChartCard({
               <Area
                 type="monotone"
                 dataKey="receita"
-                stroke="#10b981"
+                stroke="#3b82f6"
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorReceita)"

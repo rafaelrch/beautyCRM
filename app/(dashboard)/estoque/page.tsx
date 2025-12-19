@@ -105,6 +105,7 @@ export default function StockPage() {
   });
   const totalProducts = products.length;
   const inventoryValue = products.reduce((sum, p) => sum + p.costPrice * p.quantity, 0);
+  const inventorySaleValue = products.reduce((sum, p) => sum + p.salePrice * p.quantity, 0);
 
   const getStockStatusLabel = (status: string) => {
     switch (status) {
@@ -231,13 +232,11 @@ export default function StockPage() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-muted-foreground mb-1">Produtos Ativos</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {products.filter((p: any) => p.status === "active").length}
-                </p>
+                <p className="text-sm text-muted-foreground mb-1">Valor em Estoque (Preço de Venda)</p>
+                <p className="text-2xl font-bold text-green-600">{formatCurrency(inventorySaleValue)}</p>
               </div>
               <div className="flex-shrink-0 ml-4">
-                <Box className="h-12 w-12 text-blue-500 opacity-80" />
+                <DollarSign className="h-12 w-12 text-green-500 opacity-80" />
               </div>
             </div>
           </CardContent>
