@@ -89,6 +89,14 @@ export const KanbanCard = ({ card, onEdit, onDelete, onViewDetails }: KanbanCard
     }).format(value);
   };
 
+  // Converter cor hex para rgba com opacidade
+  const hexToRgba = (hex: string, opacity: number): string => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  };
+
   // Estado para rastrear se houve movimento durante o clique (para diferenciar clique de drag)
   const dragStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
@@ -134,59 +142,73 @@ export const KanbanCard = ({ card, onEdit, onDelete, onViewDetails }: KanbanCard
       {...listeners}
       onMouseDown={handleMouseDown}
       onClick={handleCardClick}
-      className={`bg-white rounded-xl p-4 border border-gray-200 cursor-grab active:cursor-grabbing transition-all ${
+      className={`bg-white rounded-xl p-4 border border-gray-200 cursor-grab active:cursor-grabbing transition-all overflow-hidden ${
         isDragging ? "scale-105 opacity-50" : ""
       }`}
     >
       {/* Conteúdo do Card */}
-      <div className="flex flex-col">
-        {/* Título (nome) */}
-        <h4 className="font-semibold text-sm text-gray-900 mb-1.5 leading-tight">
-          {card.clienteNome}
-        </h4>
+      <div className="flex flex-col min-h-0 h-full">
+        {/* Título (nome) com data ao lado */}
+        <div className="flex items-center gap-2 mb-1.5">
+          <h4 className="font-semibold text-sm text-gray-900 leading-tight truncate flex-1">
+            {card.clienteNome}
+          </h4>
+          {card.data && (
+            <div className="flex items-center gap-1 text-gray-500 flex-shrink-0">
+              <Calendar className="h-3 w-3" />
+              <span className="text-xs">{format(card.data, "dd/MM")}</span>
+            </div>
+          )}
+        </div>
         
         {/* Subtítulo (serviço) */}
-        <p className="text-xs text-gray-600 mb-2 leading-relaxed">
+        <p className="text-xs text-gray-600 mb-2 leading-relaxed truncate">
           {card.servico}
         </p>
         
-        {/* Profissional */}
-        <p className="text-xs text-gray-500 mb-4">
-          {card.profissional}
-        </p>
+        {/* Profissional em badge */}
+        {card.profissional && (
+          <div 
+            className="inline-flex items-center px-4 py-1 rounded-full text-xs font-semibold tracking-tighter mb-3 w-fit"
+            style={{
+              backgroundColor: card.profissionalCor ? hexToRgba(card.profissionalCor, 0.08) : hexToRgba('#6366f1', 0.08), // 8% opacity
+              color: card.profissionalCor || '#6366f1', // 100% da cor
+            }}
+          >
+            {card.profissional}
+          </div>
+        )}
         
         {/* Rodapé com flex layout */}
-        <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
+        <div className="flex items-center gap-2 pt-2 border-t border-gray-100 mt-auto">
           {/* Ícone do status */}
-          <div className={`w-2 h-2 rounded-full ${getStatusDotColor(card.status)}`} />
+          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${getStatusDotColor(card.status)}`} />
           
-          {/* Data e horário com ícones */}
-          <div className="flex items-center gap-1.5 text-gray-500">
-            <Calendar className="h-3.5 w-3.5" />
-            <span className="text-xs">{card.data ? format(card.data, "dd/MM") : ""}</span>
-            <Clock className="h-3.5 w-3.5" />
-            <span className="text-xs">{card.horario}</span>
+          {/* Horário com ícone */}
+          <div className="flex items-center gap-1 text-gray-500 min-w-0 flex-1">
+            <Clock className="h-3 w-3 flex-shrink-0" />
+            <span className="text-xs truncate">{card.horario}</span>
           </div>
           
           {/* Valor do serviço com ícone de cifrão */}
           {card.valor && card.valor > 0 && (
-            <div className="flex items-center gap-1 text-gray-600">
-              <DollarSign className="h-3.5 w-3.5" />
-              <span className="text-xs font-medium">
+            <div className="flex items-center gap-0.5 text-gray-600 flex-shrink-0">
+              <DollarSign className="h-3 w-3" />
+              <span className="text-xs font-medium whitespace-nowrap">
                 {formatCurrency(card.valor)}
               </span>
             </div>
           )}
           
           {/* Menu de opções alinhado à direita */}
-          <div className="flex items-center ml-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center ml-auto flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="h-5 w-5 flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                  className="h-4 w-4 flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
                   onMouseDown={(e) => e.stopPropagation()}
                 >
-                  <MoreVertical className="h-4 w-4" />
+                  <MoreVertical className="h-3.5 w-3.5" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">

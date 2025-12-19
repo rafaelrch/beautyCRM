@@ -5,6 +5,7 @@ export interface KanbanCard {
   horario: string;
   data?: Date;
   profissional: string;
+  profissionalCor?: string;
   status: string;
   columnId: string;
   order: number;
@@ -36,6 +37,7 @@ export const getColumnColor = (status: string): string => {
   };
   return colors[status] || "bg-gray-100 text-gray-800 border-gray-200";
 };
+
 
 
 

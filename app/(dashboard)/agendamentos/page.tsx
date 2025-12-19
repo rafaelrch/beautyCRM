@@ -14,6 +14,8 @@ import { DrawerDetalhes } from "@/components/calendario/DrawerDetalhes";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { CalendarIcon, CalendarDaysIcon, ViewColumnsIcon } from "@heroicons/react/24/outline";
+import { CalendarDaysIcon as CalendarDaysIconSolid, ViewColumnsIcon as ViewColumnsIconSolid } from "@heroicons/react/24/solid";
 import { formatMonthYear } from "@/lib/dateHelpers";
 import { defaultKanbanColumns, type KanbanCard as KanbanCardType, type KanbanColumn as KanbanColumnType } from "@/types/kanban";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth, isSameDay, startOfWeek, endOfWeek, addWeeks, addDays, isWithinInterval } from "date-fns";
@@ -301,6 +303,7 @@ export default function AgendamentosPage() {
         horario: apt.horario,
         data: apt.data, // Adicionar data do agendamento
         profissional: profissional?.name || "Não definido",
+        profissionalCor: profissional?.color || "#6366f1",
         status: apt.status,
         columnId,
         order: index,
@@ -900,11 +903,27 @@ export default function AgendamentosPage() {
       />
 
       {/* Tabs para alternar entre visualizações */}
-      <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "calendar" | "kanban")} className="w-full overflow-x-hidden max-w-full">
-        <TabsList className="bg-white">
-          <TabsTrigger value="calendar">Calendário</TabsTrigger>
-          <TabsTrigger value="kanban">Kanban</TabsTrigger>
-        </TabsList>
+      <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "calendar" | "kanban")} className="w-full max-w-full">
+        <div className="flex justify-start py-2 px-4 -mx-4">
+          <TabsList>
+            <TabsTrigger value="calendar">
+              {viewMode === "calendar" ? (
+                <CalendarDaysIconSolid className="size-4" />
+              ) : (
+                <CalendarIcon className="size-4" />
+              )}
+              Calendário
+            </TabsTrigger>
+            <TabsTrigger value="kanban">
+              {viewMode === "kanban" ? (
+                <ViewColumnsIconSolid className="size-4" />
+              ) : (
+                <ViewColumnsIcon className="size-4" />
+              )}
+              Kanban
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="calendar" className="mt-6">
           {isLoading ? (
