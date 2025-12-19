@@ -87,3 +87,4 @@ export function CardAgendamento({
   );
 }
 
+export default CardAgendamento;

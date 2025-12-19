@@ -287,7 +287,7 @@ export default function DashboardPage() {
 
   const getStatusInfo = (status: string) => {
     const statusLower = status.toLowerCase();
-    if (statusLower === "completed" || statusLower === "concluido") {
+    if (statusLower === "completed" || statusLower === "concluido" || statusLower === "confirmado") {
       return {
         label: "Confirmado",
         icon: CheckCircle2,
@@ -335,7 +335,7 @@ export default function DashboardPage() {
           <p className="text-muted-foreground">Carregando dados...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 lg:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 lg:gap-3">
           {/* Row 1 - 3 Metric Cards + Upcoming Appointments (starts here, spans 2 rows) */}
           <div className="lg:col-span-3 sm:col-span-2">
             <MetricCard
@@ -399,7 +399,7 @@ export default function DashboardPage() {
                                 </div>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-foreground truncate">
+                                <p className="text-sm font-semibold text-foreground truncate">
                                   {clientName}
                                 </p>
                                 {clientPhone && (
