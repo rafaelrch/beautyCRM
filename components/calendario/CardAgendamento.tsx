@@ -62,7 +62,7 @@ export function CardAgendamento({
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       className={cn(
-        "rounded-lg border-l-4 p-2 mb-1 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]",
+        "rounded-lg border-l-4 p-2 mb-1 cursor-pointer transition-all hover:scale-[1.02]",
         "text-xs",
         statusInfo.bg,
         statusInfo.border

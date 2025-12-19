@@ -101,7 +101,7 @@ export function KpiCard({ title, value, percentage, trend, className, icon }: Kp
   const isPositive = trend === "up" || (percentage !== undefined && percentage >= 0);
   
   return (
-    <Card className={cn("bg-white rounded-xl shadow-sm", className)}>
+    <Card className={cn("bg-white rounded-xl", className)}>
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">

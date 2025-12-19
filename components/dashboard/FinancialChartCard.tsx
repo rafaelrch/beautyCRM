@@ -11,7 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { format, parseISO, startOfDay, eachDayOfInterval } from "date-fns";
+import { format, parseISO, startOfDay, eachDayOfInterval, eachHourOfInterval, startOfHour, setHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatCurrency } from "@/lib/formatters";
 import { getPeriodDates, type PeriodFilter } from "@/lib/date-filters";
@@ -45,10 +45,59 @@ export function FinancialChartCard({
   const chartData = useMemo(() => {
     const { start, end } = getPeriodDates(period);
     
-    // Criar intervalo de dias
+    // Se for "hoje", agrupar por horário
+    if (period === "hoje") {
+      const today = startOfDay(start);
+      const hours = eachHourOfInterval({
+        start: setHours(today, 0),
+        end: setHours(today, 23),
+      });
+      
+      const dataByHour = new Map<string, { receita: number; despesa: number }>();
+      
+      hours.forEach((hour) => {
+        const key = format(hour, "HH:mm");
+        dataByHour.set(key, { receita: 0, despesa: 0 });
+      });
+
+      transactions.forEach((t) => {
+        if (t.status !== "completed") return;
+        
+        // Usar created_at para pegar o horário exato
+        if (t.created_at) {
+          const transactionDateTime = new Date(t.created_at);
+          const transactionDate = startOfDay(transactionDateTime);
+          
+          // Verificar se é do dia de hoje
+          if (transactionDate.getTime() === today.getTime()) {
+            const hour = startOfHour(transactionDateTime);
+            const key = format(hour, "HH:mm");
+            
+            if (dataByHour.has(key)) {
+              const current = dataByHour.get(key)!;
+              if (t.type === "income") {
+                current.receita += Number(t.amount);
+              } else {
+                current.despesa += Number(t.amount);
+              }
+            }
+          }
+        }
+      });
+
+      return Array.from(dataByHour.entries())
+        .map(([time, values]) => ({
+          date: time,
+          name: time,
+          receita: values.receita,
+          despesa: values.despesa,
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+    }
+    
+    // Para outros períodos, agrupar por dia
     const days = eachDayOfInterval({ start, end });
     
-    // Agrupar transações por dia
     const dataByDay = new Map<string, { receita: number; despesa: number }>();
     
     days.forEach((day) => {
@@ -92,7 +141,7 @@ export function FinancialChartCard({
     <Card className="h-full">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">Financeiro</CardTitle>
+          <CardTitle className="text-2xl font-semibold tracking-tighter">Financeiro</CardTitle>
           <div className="flex gap-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-blue-500" />
@@ -135,6 +184,7 @@ export function FinancialChartCard({
                 tickLine={false}
                 axisLine={false}
                 className="text-muted-foreground"
+                interval={period === "hoje" ? 2 : 0}
               />
               <YAxis
                 tick={{ fontSize: 12 }}
@@ -149,7 +199,7 @@ export function FinancialChartCard({
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="rounded-lg border bg-background p-3 shadow-lg">
+                      <div className="rounded-lg border bg-background p-3">
                         <p className="mb-2 font-medium">{label}</p>
                         {payload.map((entry, index) => (
                           <p

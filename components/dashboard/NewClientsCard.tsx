@@ -4,9 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Users, Phone, Mail } from "lucide-react";
+import { Users } from "lucide-react";
 
 interface Client {
   id: string;
@@ -51,9 +49,9 @@ export function NewClientsCard({ clients, periodDisplay }: NewClientsCardProps) 
     <Card className="h-full">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">Novos Clientes</CardTitle>
-          <Badge variant="secondary" className="font-normal">
-            {clients.length} no período
+          <CardTitle className="text-2xl font-semibold tracking-tighter">Novos Clientes</CardTitle>
+          <Badge className="bg-blue-500/10 text-blue-600 border-0 font-bold">
+            {clients.length}
           </Badge>
         </div>
       </CardHeader>
@@ -66,38 +64,42 @@ export function NewClientsCard({ clients, periodDisplay }: NewClientsCardProps) 
             </p>
           </div>
         ) : (
-          <ScrollArea className="h-[200px]">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-              {displayClients.map((client) => (
-                <div
-                  key={client.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                >
-                  <Avatar className="h-10 w-10 shrink-0">
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                      {getInitials(client.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{client.name}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>
-                        {format(client.registrationDate, "dd/MM/yy", {
-                          locale: ptBR,
-                        })}
-                      </span>
-                    </div>
-                    {client.phone && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                        <Phone className="h-3 w-3" />
-                        <span className="truncate">{client.phone}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+          <div className="space-y-0">
+            {/* Cabeçalho */}
+            <div className="grid grid-cols-[2fr_1fr_1.5fr] gap-4 pb-2 mb-2 border-b text-sm font-medium text-muted-foreground">
+              <div>Nome</div>
+              <div>Telefone</div>
+              <div>Email</div>
             </div>
-          </ScrollArea>
+            {/* Lista de clientes */}
+            <ScrollArea className="h-[200px]">
+              <div className="space-y-0">
+                {displayClients.map((client, index) => (
+                  <div
+                    key={client.id}
+                    className={`grid grid-cols-[2fr_1fr_1.5fr] gap-4 py-3 ${
+                      index !== displayClients.length - 1 ? "border-b" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                          {getInitials(client.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium">{client.name}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      {client.phone || "-"}
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      {client.email || "-"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
         )}
       </CardContent>
     </Card>

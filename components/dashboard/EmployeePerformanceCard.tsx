@@ -29,11 +29,11 @@ export function EmployeePerformanceCard({
     <Card className="h-full">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">
+          <CardTitle className="text-2xl font-semibold tracking-tighter">
             Desempenho Profissionais
           </CardTitle>
-          <Badge variant="secondary" className="font-normal">
-            {total} atendimentos
+          <Badge className="bg-blue-500/10 text-blue-600 border-0 font-bold">
+            {total}
           </Badge>
         </div>
       </CardHeader>

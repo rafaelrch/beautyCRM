@@ -24,7 +24,7 @@ export function Header({ title, actionLabel = "+ New lead", onAction, onFilter, 
           <Button 
             variant="outline" 
             onClick={onFilter}
-            className="bg-white hover:bg-gray-50 text-foreground border border-gray-200 shadow-sm"
+            className="bg-white hover:bg-gray-50 text-foreground border border-gray-200"
           >
             <Filter className="h-4 w-4 mr-2" />
             Filtrar

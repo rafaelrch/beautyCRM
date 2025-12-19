@@ -323,7 +323,7 @@ export default function ClientDetailsPage() {
       {/* Service History */}
       <Card>
         <CardHeader>
-          <CardTitle>Histórico de Serviços</CardTitle>
+          <CardTitle>Histórico</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>

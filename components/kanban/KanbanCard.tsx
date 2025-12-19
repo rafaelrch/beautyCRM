@@ -134,8 +134,8 @@ export const KanbanCard = ({ card, onEdit, onDelete, onViewDetails }: KanbanCard
       {...listeners}
       onMouseDown={handleMouseDown}
       onClick={handleCardClick}
-      className={`bg-white rounded-xl p-4 border border-gray-200 cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${
-        isDragging ? "shadow-lg scale-105 opacity-50" : ""
+      className={`bg-white rounded-xl p-4 border border-gray-200 cursor-grab active:cursor-grabbing transition-all ${
+        isDragging ? "scale-105 opacity-50" : ""
       }`}
     >
       {/* Conteúdo do Card */}

@@ -75,9 +75,9 @@ export default function LoginPage() {
           }
           
           if (Object.keys(updateData).length > 0) {
-            const { error: updateError } = await (supabase
-              .from("users") as any)
-              .update(updateData)
+            const { error: updateError } = await supabase
+              .from("users")
+              .update(updateData as any)
               .eq("id", data.user.id);
 
             if (updateError) {
@@ -118,19 +118,16 @@ export default function LoginPage() {
       {/* Left Side - Login Form */}
       <div className="flex-1 flex items-center justify-center bg-white p-8">
         <div className="w-full max-w-md space-y-8">
-          {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <Image
-              src="/logo.png"
-              alt="BeautyDesk Logo"
-              width={200}
-              height={60}
-              priority
-            />
+          <div>
+            <h1 className="text-3xl font-bold text-[#6B46C1] mb-2">
+              Bem vindo ao BeautyDesk
+            </h1>
+            <p className="text-muted-foreground">
+              Faça login para acessar seu painel
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-
             {/* Email or Phone */}
             <div className="space-y-2">
               <Label htmlFor="emailOrPhone">Email</Label>

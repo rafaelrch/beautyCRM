@@ -1,16 +1,19 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { DollarSign, Calendar, X } from "lucide-react";
+import { DollarSign, Calendar, X, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { FinancialChartCard } from "@/components/dashboard/FinancialChartCard";
-import { UpcomingAppointmentsCard } from "@/components/dashboard/UpcomingAppointmentsCard";
 import { NewClientsCard } from "@/components/dashboard/NewClientsCard";
 import { EmployeePerformanceCard } from "@/components/dashboard/EmployeePerformanceCard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { getTransactions, getAppointments, getClients, getProfessionals } from "@/lib/supabase-helpers";
 import { getPeriodDates, type PeriodFilter } from "@/lib/date-filters";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatPhone } from "@/lib/formatters";
 import { startOfDay, endOfDay, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Database } from "@/types/database";
@@ -207,11 +210,109 @@ export default function DashboardPage() {
     }));
   }, [clients]);
 
+  // Filtrar próximos agendamentos (a partir da hora atual)
+  const proximosAgendamentosFuturos = useMemo(() => {
+    const now = new Date();
+    const currentDate = startOfDay(now);
+    const currentTime = now.getHours() * 60 + now.getMinutes(); // minutos desde meia-noite
+
+    return appointments
+      .map((a) => {
+        const appointmentDate = parseLocalDate(a.date);
+        const appointmentDay = startOfDay(appointmentDate);
+        const [hours = 0, minutes = 0] = (a.start_time || "00:00").split(":").map(Number);
+        const appointmentTime = hours * 60 + minutes;
+
+        return {
+          id: a.id,
+          clientId: a.client_id,
+          date: appointmentDate,
+          startTime: a.start_time || "",
+          status: a.status as string,
+        };
+      })
+      .filter((apt) => {
+        const aptDate = startOfDay(apt.date);
+        const [hours = 0, minutes = 0] = apt.startTime.split(":").map(Number);
+        const aptTime = hours * 60 + minutes;
+
+        // Se for hoje, verificar se o horário já passou
+        if (aptDate.getTime() === currentDate.getTime()) {
+          return aptTime >= currentTime;
+        }
+        // Se for data futura, incluir
+        return aptDate > currentDate;
+      })
+      .sort((a, b) => {
+        const dateA = a.date.getTime();
+        const dateB = b.date.getTime();
+        if (dateA !== dateB) {
+          return dateA - dateB;
+        }
+        const [hoursA = 0, minutesA = 0] = a.startTime.split(":").map(Number);
+        const [hoursB = 0, minutesB = 0] = b.startTime.split(":").map(Number);
+        return (hoursA * 60 + minutesA) - (hoursB * 60 + minutesB);
+      })
+      .slice(0, 10); // Limitar a 10 agendamentos
+  }, [appointments]);
+
+  const getClientName = (clientId: string): string => {
+    const client = clients.find((c) => c.id === clientId);
+    return client?.name || "Cliente não encontrado";
+  };
+
+  const getClientPhone = (clientId: string): string => {
+    const client = clients.find((c) => c.id === clientId);
+    return client?.phone || "";
+  };
+
+  const getInitials = (name: string): string => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const formatTimeDisplay = (time: string): string => {
+    const timeMatch = time.match(/^(\d{1,2}):(\d{2})/);
+    if (timeMatch) {
+      const hours = timeMatch[1].padStart(2, '0');
+      const minutes = timeMatch[2];
+      return `${hours}:${minutes}h`;
+    }
+    return time;
+  };
+
+  const getStatusInfo = (status: string) => {
+    const statusLower = status.toLowerCase();
+    if (statusLower === "completed" || statusLower === "concluido") {
+      return {
+        label: "Confirmado",
+        icon: CheckCircle2,
+        className: "text-blue-600 bg-blue-50 border-blue-200",
+      };
+    }
+    if (statusLower === "scheduled" || statusLower === "agendado") {
+      return {
+        label: "Pendente",
+        icon: AlertCircle,
+        className: "text-yellow-600 bg-yellow-50 border-yellow-200",
+      };
+    }
+    return {
+      label: status,
+      icon: AlertCircle,
+      className: "text-gray-600 bg-gray-50 border-gray-200",
+    };
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <div className="flex items-center gap-3 w-full lg:w-auto">
           <span className="text-sm text-muted-foreground">{periodDisplay}</span>
           <Select value={period} onValueChange={(value) => setPeriod(value as PeriodFilter)}>
@@ -234,13 +335,13 @@ export default function DashboardPage() {
           <p className="text-muted-foreground">Carregando dados...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 lg:gap-4">
           {/* Row 1 - 3 Metric Cards + Upcoming Appointments (starts here, spans 2 rows) */}
           <div className="lg:col-span-3 sm:col-span-2">
             <MetricCard
               title="Faturamento"
               value={formatCurrency(faturamento)}
-              icon={<DollarSign className="w-6 h-6" />}
+              icon={<DollarSign className="w-5 h-5" />}
               periodDisplay={periodDisplay}
             />
           </div>
@@ -248,7 +349,7 @@ export default function DashboardPage() {
             <MetricCard
               title="Agendamentos"
               value={totalAgendamentos.toString()}
-              icon={<Calendar className="w-6 h-6" />}
+              icon={<Calendar className="w-5 h-5" />}
               periodDisplay={periodDisplay}
             />
           </div>
@@ -256,16 +357,79 @@ export default function DashboardPage() {
             <MetricCard
               title="Cancelamentos"
               value={totalCancelamentos.toString()}
-              icon={<X className="w-6 h-6" />}
+              icon={<X className="w-5 h-5" />}
               periodDisplay={periodDisplay}
             />
           </div>
-          <div className="lg:col-span-3 lg:row-span-2 sm:col-span-2 self-stretch">
-            <UpcomingAppointmentsCard 
-              appointments={appointmentsForCard} 
-              clients={clientsForCard}
-              periodDisplay={periodDisplay}
-            />
+          <div className="lg:col-span-3 lg:row-span-2 sm:col-span-2 self-stretch min-h-0 flex flex-col">
+            <Card className="h-full flex flex-col min-h-0">
+              <CardHeader className="pb-2 px-4 pt-4 flex-shrink-0">
+                <CardTitle className="text-2xl font-semibold tracking-tighter">
+                  Próximos Agendamentos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1 min-h-0 overflow-hidden flex flex-col p-0">
+                {proximosAgendamentosFuturos.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center py-6 px-4">
+                    <Calendar className="h-10 w-10 text-muted-foreground/50 mb-2" />
+                    <p className="text-xs text-muted-foreground">
+                      Nenhum agendamento futuro
+                    </p>
+                  </div>
+                ) : (
+                  <ScrollArea className="flex-1 min-h-0 px-4 pb-4">
+                    <div className="space-y-2">
+                      {proximosAgendamentosFuturos.map((appointment) => {
+                        const clientName = getClientName(appointment.clientId);
+                        const clientPhone = getClientPhone(appointment.clientId);
+                        const statusInfo = getStatusInfo(appointment.status);
+                        const StatusIcon = statusInfo.icon;
+
+                        return (
+                          <div
+                            key={appointment.id}
+                            className="p-2 rounded-lg bg-[#f6f9fa] hover:bg-[#f3f3f3] transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="flex-shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <span className="text-xs font-medium text-primary">
+                                    {getInitials(clientName)}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-foreground truncate">
+                                  {clientName}
+                                </p>
+                                {clientPhone && (
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {formatPhone(clientPhone)}
+                                  </p>
+                                )}
+                                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <Clock className="h-2.5 w-2.5" />
+                                    <span>{formatTimeDisplay(appointment.startTime)}</span>
+                                  </div>
+                                  <Badge
+                                    variant="outline"
+                                    className={`${statusInfo.className} text-xs px-1.5 py-0.5 flex items-center gap-1`}
+                                  >
+                                    <StatusIcon className="h-2.5 w-2.5" />
+                                    {statusInfo.label}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Row 2 - Financial Chart */}

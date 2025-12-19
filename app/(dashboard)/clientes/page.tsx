@@ -75,8 +75,11 @@ export default function ClientsPage() {
       const clientVisitCounts = new Map<string, number>();
 
       appointmentsData.forEach((appointment: AppointmentRow) => {
-        // Só considerar agendamentos concluídos
-        if (appointment.status === "completed" && appointment.client_id) {
+        // Só considerar agendamentos concluídos (aceitar tanto "completed" quanto "concluido")
+        const status = String(appointment.status || "").toLowerCase();
+        const isCompleted = status === "completed" || status === "concluido";
+        
+        if (isCompleted && appointment.client_id) {
           const clientId = appointment.client_id;
           
           // Converter data do agendamento para Date
@@ -176,7 +179,8 @@ export default function ClientsPage() {
           }
         }
         const lastVisit = clientLastVisits.get(client.id) || lastVisitFromDb;
-        const totalVisits = clientVisitCounts.get(client.id) || Number(client.total_visits || 0);
+        // Sempre usar o valor calculado dos agendamentos concluídos, não o valor do banco
+        const totalVisits = clientVisitCounts.get(client.id) || 0;
 
         return {
           id: client.id,

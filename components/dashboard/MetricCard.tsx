@@ -25,11 +25,11 @@ export function MetricCard({
 }: MetricCardProps) {
   return (
     <Card className={cn("h-full", className)}>
-      <CardContent className="p-6">
+      <CardContent className="p-4">
         <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold text-foreground">{value}</p>
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground">{title}</p>
+            <p className="text-2xl font-bold text-foreground">{value}</p>
             {trend && (
               <div className="flex items-center gap-1">
                 <span
@@ -47,7 +47,7 @@ export function MetricCard({
               </div>
             )}
           </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
             {icon}
           </div>
         </div>

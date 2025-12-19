@@ -49,14 +49,17 @@ export default function StockPage() {
         
         // Calcular status automaticamente
         let status: string;
+        const halfQuantity = totalQuantity * 0.5;
+        
         if (quantity === 0) {
           status = "out_of_stock"; // Em falta
-        } else if (quantity >= totalQuantity) {
-          status = "in_stock"; // Em estoque
-        } else if (quantity >= (totalQuantity * 0.5)) {
-          status = "half_stock"; // Estoque pela metade
+        } else if (quantity > halfQuantity) {
+          status = "in_stock"; // Em estoque (quantidade > 50% do total)
+        } else if (Math.abs(quantity - halfQuantity) <= 0.01) {
+          // Estoque pela metade (quantidade = 50% do total, com margem de erro pequena para números decimais)
+          status = "half_stock";
         } else {
-          status = "low_stock"; // Estoque no fim
+          status = "low_stock"; // Estoque no fim (quantidade < 50% do total)
         }
 
         return {
@@ -193,11 +196,11 @@ export default function StockPage() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-muted-foreground mb-1">Total de Produtos</p>
-                <p className="text-4xl font-bold text-foreground">{totalProducts}</p>
+                <p className="text-sm text-muted-foreground mb-1">Valor em Estoque (Preço de Venda)</p>
+                <p className="text-2xl font-bold text-green-600">{formatCurrency(inventorySaleValue)}</p>
               </div>
               <div className="flex-shrink-0 ml-4">
-                <Box className="h-12 w-12 text-blue-500 opacity-80" />
+                <DollarSign className="h-12 w-12 text-green-500 opacity-80" />
               </div>
             </div>
           </CardContent>
@@ -206,11 +209,24 @@ export default function StockPage() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-muted-foreground mb-1">Valor do Estoque</p>
+                <p className="text-sm text-muted-foreground mb-1">Valor do Estoque (Preço de Custo)</p>
                 <p className="text-2xl font-bold text-foreground">{formatCurrency(inventoryValue)}</p>
               </div>
               <div className="flex-shrink-0 ml-4">
                 <DollarSign className="h-12 w-12 text-green-500 opacity-80" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-muted-foreground mb-1">Total de Produtos</p>
+                <p className="text-4xl font-bold text-foreground">{totalProducts}</p>
+              </div>
+              <div className="flex-shrink-0 ml-4">
+                <Box className="h-12 w-12 text-blue-500 opacity-80" />
               </div>
             </div>
           </CardContent>
@@ -224,19 +240,6 @@ export default function StockPage() {
               </div>
               <div className="flex-shrink-0 ml-4">
                 <AlertTriangle className="h-12 w-12 text-red-500 opacity-80" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-muted-foreground mb-1">Valor em Estoque (Preço de Venda)</p>
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(inventorySaleValue)}</p>
-              </div>
-              <div className="flex-shrink-0 ml-4">
-                <DollarSign className="h-12 w-12 text-green-500 opacity-80" />
               </div>
             </div>
           </CardContent>
