@@ -118,16 +118,19 @@ export default function LoginPage() {
       {/* Left Side - Login Form */}
       <div className="flex-1 flex items-center justify-center bg-white p-8">
         <div className="w-full max-w-md space-y-8">
-          <div>
-            <h1 className="text-3xl font-bold text-[#6B46C1] mb-2">
-              Bem vindo ao BeautyDesk
-            </h1>
-            <p className="text-muted-foreground">
-              Faça login para acessar seu painel
-            </p>
+          {/* Logo */}
+          <div className="flex justify-center mb-6">
+            <Image
+              src="/logo.png"
+              alt="BeautyDesk Logo"
+              width={200}
+              height={60}
+              priority
+            />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+
             {/* Email or Phone */}
             <div className="space-y-2">
               <Label htmlFor="emailOrPhone">Email</Label>
