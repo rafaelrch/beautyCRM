@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+import type { Database } from "@/types/database";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -56,7 +57,7 @@ export default function LoginPage() {
           // Atualizar dados do usuário na tabela users com os dados do metadata
           // Isso garante que os dados estejam sincronizados após confirmação de email
           const userMetadata = data.user.user_metadata || {};
-          const updateData: any = {};
+          const updateData: Database['public']['Tables']['users']['Update'] = {};
           
           if (userMetadata.full_name || userMetadata.name) {
             updateData.full_name = userMetadata.full_name || userMetadata.name;
@@ -77,7 +78,7 @@ export default function LoginPage() {
           if (Object.keys(updateData).length > 0) {
             const { error: updateError } = await supabase
               .from("users")
-              .update(updateData as any)
+              .update(updateData)
               .eq("id", data.user.id);
 
             if (updateError) {
