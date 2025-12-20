@@ -57,28 +57,30 @@ export default function LoginPage() {
           // Atualizar dados do usuário na tabela users com os dados do metadata
           // Isso garante que os dados estejam sincronizados após confirmação de email
           const userMetadata = data.user.user_metadata || {};
-          const updateData: Database['public']['Tables']['users']['Update'] = {};
+          
+          // Construir objeto de atualização apenas com campos que existem
+          const updateFields: Record<string, string | null> = {};
           
           if (userMetadata.full_name || userMetadata.name) {
-            updateData.full_name = userMetadata.full_name || userMetadata.name;
+            updateFields.full_name = userMetadata.full_name || userMetadata.name;
           }
           if (userMetadata.salon_name) {
-            updateData.salon_name = userMetadata.salon_name;
+            updateFields.salon_name = userMetadata.salon_name;
           }
           if (userMetadata.cnpj) {
-            updateData.cnpj = userMetadata.cnpj;
+            updateFields.cnpj = userMetadata.cnpj;
           }
           if (userMetadata.phone) {
-            updateData.phone = userMetadata.phone;
+            updateFields.phone = userMetadata.phone;
           }
           if (userMetadata.address) {
-            updateData.address = userMetadata.address;
+            updateFields.address = userMetadata.address;
           }
           
-          if (Object.keys(updateData).length > 0) {
-            const { error: updateError } = await supabase
-              .from("users")
-              .update(updateData)
+          if (Object.keys(updateFields).length > 0) {
+            const { error: updateError } = await (supabase
+              .from("users") as any)
+              .update(updateFields)
               .eq("id", data.user.id);
 
             if (updateError) {
